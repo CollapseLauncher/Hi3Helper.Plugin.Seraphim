@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.HBR", "Hi3Helper.Plugin.HBR\Hi3Helper.Plugin.HBR.csproj", "{BA302F46-E800-4F4F-B8DA-29939160448D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.Core", "Hi3Helper.Plugin.Core\Hi3Helper.Plugin.Core.csproj", "{6D56B964-1509-482F-4589-C780CDE5C703}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA302F46-E800-4F4F-B8DA-29939160448D}.Debug|x64.ActiveCfg = Debug|x64
+		{BA302F46-E800-4F4F-B8DA-29939160448D}.Debug|x64.Build.0 = Debug|x64
+		{BA302F46-E800-4F4F-B8DA-29939160448D}.Release|x64.ActiveCfg = Release|x64
+		{BA302F46-E800-4F4F-B8DA-29939160448D}.Release|x64.Build.0 = Release|x64
+		{6D56B964-1509-482F-4589-C780CDE5C703}.Debug|x64.ActiveCfg = Debug|x64
+		{6D56B964-1509-482F-4589-C780CDE5C703}.Debug|x64.Build.0 = Debug|x64
+		{6D56B964-1509-482F-4589-C780CDE5C703}.Release|x64.ActiveCfg = Release|x64
+		{6D56B964-1509-482F-4589-C780CDE5C703}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {53445DBD-9B1F-43CB-866B-884C02F96972}
+	EndGlobalSection
+EndGlobal
