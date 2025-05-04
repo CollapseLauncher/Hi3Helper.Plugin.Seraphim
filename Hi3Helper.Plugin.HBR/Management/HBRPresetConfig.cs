@@ -14,14 +14,10 @@ public unsafe partial class HBRPresetConfig : IPluginPresetConfig
     public string get_GameName() => "Heaven Burns Red";
     public string get_ProfileName() => "HBRGlobal";
     public string get_ZoneDescription() =>
-        """
-        Heaven Burns Red is a story-driven role-playing game co-developed
-         by WRIGHT FLYER STUDIOS and VISUAL ARTS/Key.
-         This title is Jun Maeda's first completely new game in 15 years.
-         As a narrative-centric RPG, Heaven Burns Red uses a timeline narrative
-         design to advance the story, breaking new ground in the RPG genre by
-         offering an engaging and evolving storyline driven by player choices.
-        """;
+        "Heaven Burns Red is a story-driven role-playing game co-developed by WRIGHT FLYER STUDIOS and VISUAL ARTS/Key. " +
+        "This title is Jun Maeda's first completely new game in 15 years. " +
+        "As a narrative-centric RPG, Heaven Burns Red uses a timeline narrative design to advance the story, " +
+        "breaking new ground in the RPG genre by offering an engaging and evolving storyline driven by player choices.";
     public string get_ZoneName() => "Global";
     public string get_ZoneFullName() => "Heaven Burns Red (Global)";
     public string get_ZoneLogoUrl() => string.Empty;
@@ -29,7 +25,13 @@ public unsafe partial class HBRPresetConfig : IPluginPresetConfig
     public string get_ZoneHomePageUrl() => "https://heavenburnsred.yo-star.com/";
     public GameReleaseChannel get_ReleaseChannel() => GameReleaseChannel.Public;
     public string get_GameMainLanguage() => "en";
-    public nint get_GameSupportedLanguages() => (nint)Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(SupportedLanguages));
+    public string get_GameSupportedLanguages(int index)
+    {
+        if (index >= SupportedLanguages.Length || index < 0)
+            return string.Empty;
+
+        return SupportedLanguages[index];
+    }
     public int get_GameSupportedLanguagesCount() => SupportedLanguages.Length;
     public string get_GameExecutableName() => "HeavenBurnsRed.exe";
     public string get_LauncherGameDirectoryName() => "HeavenBurnsRed";

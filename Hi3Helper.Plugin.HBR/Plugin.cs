@@ -11,7 +11,7 @@ namespace Hi3Helper.Plugin.HBR;
 [GeneratedComClass]
 public partial class HBRPlugin : IPlugin
 {
-    private static readonly HBRPresetConfig[] PresetConfigInstances = [];
+    private static readonly IPluginPresetConfig[] PresetConfigInstances = [ new HBRPresetConfig() ];
     private static DateTime _pluginCreationDate = new(2025, 05, 04, 09, 15, 0, DateTimeKind.Utc);
 
     public string GetPluginName() => "Heaven Burns Red Plugin";

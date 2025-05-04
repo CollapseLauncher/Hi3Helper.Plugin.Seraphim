@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.HBR", "Hi3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.Core", "Hi3Helper.Plugin.Core\Hi3Helper.Plugin.Core.csproj", "{6D56B964-1509-482F-4589-C780CDE5C703}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginTest", "Hi3Helper.Plugin.Core\PluginTest\PluginTest.csproj", "{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{6D56B964-1509-482F-4589-C780CDE5C703}.Debug|x64.Build.0 = Debug|x64
 		{6D56B964-1509-482F-4589-C780CDE5C703}.Release|x64.ActiveCfg = Release|x64
 		{6D56B964-1509-482F-4589-C780CDE5C703}.Release|x64.Build.0 = Release|x64
+		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Debug|x64.ActiveCfg = Debug|x64
+		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Debug|x64.Build.0 = Debug|x64
+		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Release|x64.ActiveCfg = Release|x64
+		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
