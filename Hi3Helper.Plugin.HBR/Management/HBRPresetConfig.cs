@@ -1,13 +1,11 @@
 ﻿using Hi3Helper.Plugin.Core.Management;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
 [GeneratedComClass]
-public unsafe partial class HBRPresetConfig : IPluginPresetConfig
+public partial class HBRPresetConfig : IPluginPresetConfig
 {
     private static string[] SupportedLanguages => ["Japanese", "English"];
 
