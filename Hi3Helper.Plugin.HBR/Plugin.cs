@@ -9,22 +9,22 @@ using System.Runtime.InteropServices.Marshalling;
 namespace Hi3Helper.Plugin.HBR;
 
 [GeneratedComClass]
-public partial class HBRPlugin : IPlugin
+public partial class HBRPlugin : PluginBase
 {
     private static readonly IPluginPresetConfig[] PresetConfigInstances = [ new HBRPresetConfig() ];
     private static DateTime _pluginCreationDate = new(2025, 05, 04, 09, 15, 0, DateTimeKind.Utc);
 
-    public string GetPluginName() => "Heaven Burns Red Plugin";
+    public override string GetPluginName() => "Heaven Burns Red Plugin";
 
-    public string GetPluginDescription() => "A plugin for Heaven Burns Red on Collapse Launcher";
+    public override string GetPluginDescription() => "A plugin for Heaven Burns Red on Collapse Launcher";
 
-    public string GetPluginAuthor() => "neon-nyan, Collapse Project Team";
+    public override string GetPluginAuthor() => "neon-nyan, Collapse Project Team";
 
-    public unsafe DateTime* GetPluginCreationDate() => (DateTime*)Unsafe.AsPointer(ref _pluginCreationDate);
+    public override unsafe DateTime* GetPluginCreationDate() => (DateTime*)Unsafe.AsPointer(ref _pluginCreationDate);
 
-    public int GetPresetConfigCount() => PresetConfigInstances.Length;
+    public override int GetPresetConfigCount() => PresetConfigInstances.Length;
 
-    public IPluginPresetConfig GetPresetConfig(int index)
+    public override IPluginPresetConfig GetPresetConfig(int index)
     {
         // Avoid crash by returning null if index is out of bounds
         if (index < 0 || index >= PresetConfigInstances.Length)
