@@ -1,5 +1,5 @@
 ﻿using Hi3Helper.Plugin.Core;
-using Hi3Helper.Plugin.Core.Management;
+using Hi3Helper.Plugin.Core.Management.PresetConfig;
 using Hi3Helper.Plugin.HBR.Management;
 using System;
 using System.Runtime.CompilerServices;
