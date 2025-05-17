@@ -7,7 +7,7 @@ using System.Threading;
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 [GeneratedComClass]
-internal partial class HBRLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
+internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
 {
     public override LauncherBackgroundFlag GetBackgroundFlag()
         => LauncherBackgroundFlag.IsSourceFile | LauncherBackgroundFlag.TypeIsImage;

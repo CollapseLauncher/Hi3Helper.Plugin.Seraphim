@@ -1,5 +1,7 @@
 ﻿using Hi3Helper.Plugin.Core.Management;
+using Hi3Helper.Plugin.Core.Management.Api;
 using Hi3Helper.Plugin.Core.Management.PresetConfig;
+using Hi3Helper.Plugin.HBR.Management.Api;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -10,7 +12,8 @@ namespace Hi3Helper.Plugin.HBR.Management.PresetConfig;
 [GeneratedComClass]
 public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 {
-    private static List<string> _supportedLanguages => ["Japanese", "English"];
+    private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
+    private static readonly ILauncherApiMedia _launcherApiMedia = new HBRGlobalLauncherApiMedia();
 
     public override string GameName => "Heaven Burns Red";
     public override string GameExecutableName => "HeavenBurnsRed.exe";
@@ -29,4 +32,5 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     public override string GameMainLanguage => "en";
     public override string LauncherGameDirectoryName => "HeavenBurnsRed";
     public override List<string> SupportedLanguages => _supportedLanguages;
+    public override ILauncherApiMedia LauncherApiMedia => _launcherApiMedia;
 }
