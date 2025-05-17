@@ -6,7 +6,8 @@
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
     <InvariantGlobalization>true</InvariantGlobalization>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
