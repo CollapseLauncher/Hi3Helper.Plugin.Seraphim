@@ -5,10 +5,10 @@ using System.Runtime.InteropServices.Marshalling;
 
 // ReSharper disable InconsistentNaming
 
-namespace Hi3Helper.Plugin.HBR.Management;
+namespace Hi3Helper.Plugin.HBR.Management.PresetConfig;
 
 [GeneratedComClass]
-public partial class HBRPresetConfig : PluginPresetConfigBase
+public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 {
     private static List<string> _supportedLanguages => ["Japanese", "English"];
 
