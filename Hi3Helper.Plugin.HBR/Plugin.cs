@@ -1,8 +1,8 @@
 ﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management.PresetConfig;
+using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.PresetConfig;
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.Marshalling;
 
 // ReSharper disable InconsistentNaming
@@ -20,7 +20,7 @@ public partial class HBRPlugin : PluginBase
 
     public override string GetPluginAuthor() => "neon-nyan, Collapse Project Team";
 
-    public override unsafe DateTime* GetPluginCreationDate() => (DateTime*)Unsafe.AsPointer(ref _pluginCreationDate);
+    public override unsafe DateTime* GetPluginCreationDate() => _pluginCreationDate.AsPointer();
 
     public override int GetPresetConfigCount() => PresetConfigInstances.Length;
 

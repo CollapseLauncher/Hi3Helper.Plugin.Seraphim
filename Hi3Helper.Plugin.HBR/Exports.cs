@@ -1,5 +1,6 @@
 ﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management;
+using Hi3Helper.Plugin.Core.Utility;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -12,10 +13,10 @@ namespace Hi3Helper.Plugin.HBR
         private static GameVersion _thisPluginVersion = new(0, 0, 1, 0);
 
         [UnmanagedCallersOnly(EntryPoint = "GetPluginStandardVersion", CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe GameVersion* GetPluginStandardVersion() => (GameVersion*)Unsafe.AsPointer(ref LibraryStandardVersion);
+        public static unsafe GameVersion* GetPluginStandardVersion() => LibraryStandardVersion.AsPointer();
 
         [UnmanagedCallersOnly(EntryPoint = "GetPluginVersion", CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe GameVersion* GetPluginVersion() => (GameVersion*)Unsafe.AsPointer(ref _thisPluginVersion);
+        public static unsafe GameVersion* GetPluginVersion() => _thisPluginVersion.AsPointer();
 
         [UnmanagedCallersOnly(EntryPoint = "GetPlugin", CallConvs = [typeof(CallConvCdecl)])]
         public static unsafe void* GetPlugin() =>
