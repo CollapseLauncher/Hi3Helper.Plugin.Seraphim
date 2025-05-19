@@ -8,6 +8,14 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion>
+    <AssemblyName>Hi3Helper.Plugin.HBR</AssemblyName>
+    <ProductName>Heaven Burns Red Plugin</ProductName>
+    <Product>Collapse</Product>
+    <Description>This library is a plugin for adding support for Game: Heaven Burns Red on Collapse Launcher</Description>
+    <AssemblyTitle>Heaven Burns Red Plugin</AssemblyTitle>
+    <Company>Collapse Launcher Team</Company>
+    <Authors>$(Company). neon-nyan, Cry0, bagusnl, shatyuka, gablm.</Authors>
+    <Copyright>Copyright 2022-2025 $(Company)</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
