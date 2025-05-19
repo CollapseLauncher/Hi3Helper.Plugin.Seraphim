@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 // ReSharper disable InconsistentNaming
+// ReSharper disable StringLiteralTypo
 
 namespace Hi3Helper.Plugin.HBR.Utility;
 
@@ -47,7 +48,7 @@ internal static class HBRUtility
     internal static PluginHttpClientBuilder<SocketsHttpHandler> CreateApiHttpClientBuilder(string? gameTag = null, bool isUseAuthToken = true, bool useCompression = true, string? authSalt1 = "", string? authSalt2 = "")
     {
         PluginHttpClientBuilder<SocketsHttpHandler> builder = new PluginHttpClientBuilder()
-            .SetUserAgent("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) HBR_EN_Gamelauncher/1.4.1 Chrome/108.0.5359.62 Electron/22.0.0 Safari/537.36");
+            .SetUserAgent($"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) {gameTag}_Gamelauncher/1.4.1 Chrome/108.0.5359.62 Electron/22.0.0 Safari/537.36");
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (isUseAuthToken)
