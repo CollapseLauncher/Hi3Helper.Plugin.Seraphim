@@ -39,7 +39,7 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
             return nint.Zero;
         }
 
-        LauncherPathEntry* entry    = (LauncherPathEntry*)NativeMemory.AllocZeroed((nuint)sizeof(LauncherPathEntry));
+        LauncherPathEntry* entry    = Mem.AllocZeroed<LauncherPathEntry>();
         Span<char>         pathSpan = new(entry->Path, LauncherPathEntry.PathMaxLength - 1);
 
         ReadOnlySpan<char> urlSpan     = ApiResponse.ResponseData.BackgroundImageUrl.AsSpan();
