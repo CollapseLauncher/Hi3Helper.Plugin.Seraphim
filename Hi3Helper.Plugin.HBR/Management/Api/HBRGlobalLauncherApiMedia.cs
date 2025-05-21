@@ -19,6 +19,10 @@ namespace Hi3Helper.Plugin.HBR.Management.Api;
 [GeneratedComClass]
 internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
 {
+    private readonly Lock thisInstanceLock = new();
+
+    private static PluginDisposableMemoryMarshal backgroundEntriesMarshal = PluginDisposableMemoryMarshal.Empty;
+
     protected override HttpClient ApiResponseHttpClient { get; }
     protected          HttpClient ApiDownloadHttpClient { get; }
 
@@ -32,29 +36,58 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
         ApiDownloadHttpClient = HBRUtility.CreateApiHttpClient(gameTag, false, false);
     }
 
-    public override unsafe nint GetBackgroundEntries()
+    public override bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
     {
-        if (ApiResponse?.ResponseData == null)
+
+        using (thisInstanceLock.EnterScope())
         {
-            return nint.Zero;
+            try
+            {
+                if (backgroundEntriesMarshal.Length != 0)
+                {
+                    return true;
+                }
+
+                PluginDisposableMemory<LauncherPathEntry> memory = PluginDisposableMemory<LauncherPathEntry>.Alloc();
+                memory[0] = new LauncherPathEntry();
+
+                ref LauncherPathEntry entry = ref memory[0];
+                Span<char> pathSpan = entry.Path.AsSpan();
+
+                if (ApiResponse?.ResponseData == null)
+                {
+                    isDisposable = false;
+                    handle = nint.Zero;
+                    count = 0;
+                    return false;
+                }
+
+                ReadOnlySpan<char> urlSpan = ApiResponse.ResponseData.BackgroundImageUrl.AsSpan();
+                ulong fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
+
+                entry.FileHashLength = sizeof(ulong);
+                urlSpan.CopyTo(pathSpan[..^1]);
+                MemoryMarshal.Write(entry.FileHash.AsSpan(), in fileHashCrc);
+
+                backgroundEntriesMarshal = memory.ToMarshal();
+                return true;
+            }
+            finally
+            {
+                isDisposable = backgroundEntriesMarshal.IsDisposable;
+                handle = backgroundEntriesMarshal.Handle;
+                count = backgroundEntriesMarshal.Length;
+            }
         }
-
-        LauncherPathEntry* entry    = Mem.AllocZeroed<LauncherPathEntry>();
-        Span<char>         pathSpan = new(entry->Path, LauncherPathEntry.PathMaxLength - 1);
-
-        ReadOnlySpan<char> urlSpan     = ApiResponse.ResponseData.BackgroundImageUrl.AsSpan();
-        ulong              fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
-
-        entry->FileHashLength = sizeof(ulong);
-        entry->NextEntry      = nint.Zero;
-
-        urlSpan.CopyTo(pathSpan[..^1]);
-        MemoryMarshal.Write(new Span<byte>(entry->FileHash, entry->FileHashLength), in fileHashCrc);
-
-        return (nint)entry;
     }
 
-    public override nint GetLogoOverlayEntries() => nint.Zero;
+    public override bool GetLogoOverlayEntries(out nint handle, out int count, out bool isDisposable)
+    {
+        isDisposable = false;
+        handle = nint.Zero;
+        count = 0;
+        return false;
+    }
 
     public override LauncherBackgroundFlag GetBackgroundFlag()
         => LauncherBackgroundFlag.IsSourceFile | LauncherBackgroundFlag.TypeIsImage;
