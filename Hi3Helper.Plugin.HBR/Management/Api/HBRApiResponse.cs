@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 [JsonSerializable(typeof(HBRApiResponse<HBRApiResponseMedia>))]
+[JsonSerializable(typeof(HBRApiResponse<HBRApiResponseSocial>))]
 public partial class HBRApiResponseContext : JsonSerializerContext;
 
 public class HBRApiResponse<T>

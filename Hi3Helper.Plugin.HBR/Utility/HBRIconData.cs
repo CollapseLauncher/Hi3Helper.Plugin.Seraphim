@@ -19,7 +19,7 @@ public static partial class HBRIconData
 {
     private static Dictionary<string, string>? _hbrIconDataMapDictionary;
 
-    internal static Dictionary<string, byte[]> EmbeddedDataDictionary   = new(StringComparer.OrdinalIgnoreCase);
+    internal static Dictionary<string, byte[]> EmbeddedDataDictionary = new(StringComparer.OrdinalIgnoreCase);
 
     public static async Task Initialize(CancellationToken token)
     {
@@ -45,7 +45,7 @@ public static partial class HBRIconData
             }
 
             string entryName = entry.Name;
-            if (entryName.EndsWith("MediaIconMap.json", StringComparison.OrdinalIgnoreCase))
+            if (entryName.EndsWith("Map.json", StringComparison.OrdinalIgnoreCase))
             {
                 _hbrIconDataMapDictionary = await JsonSerializer
                     .DeserializeAsync(copyToStream, HBRIconDataMap.Default.DictionaryStringString, token);
@@ -53,6 +53,14 @@ public static partial class HBRIconData
                 {
                     throw new NullReferenceException("Cannot initialize MediaIconMap.json inside of the EmbeddedData");
                 }
+
+                Dictionary<string, string> keyValueReversed = _hbrIconDataMapDictionary.ToDictionary();
+                _hbrIconDataMapDictionary.Clear();
+                foreach (KeyValuePair<string, string> a in keyValueReversed)
+                {
+                    _hbrIconDataMapDictionary.Add(a.Value, a.Key);
+                }
+
                 continue;
             }
 
@@ -67,7 +75,12 @@ public static partial class HBRIconData
                 await copyToStream.ReadAtLeastAsync(data, data.Length, false, token).ConfigureAwait(false);
             }
 
-            _ = EmbeddedDataDictionary.TryAdd(entryName, data);
+            string key = Path.GetFileNameWithoutExtension(entryName);
+            if (!_hbrIconDataMapDictionary!.TryGetValue(key, out string? keyAsValue) || string.IsNullOrEmpty(keyAsValue))
+            {
+                continue;
+            }
+            _ = EmbeddedDataDictionary.TryAdd(keyAsValue, data);
         }
     }
 

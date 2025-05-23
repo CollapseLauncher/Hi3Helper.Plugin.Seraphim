@@ -38,7 +38,6 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
 
     public override bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
     {
-
         using (thisInstanceLock.EnterScope())
         {
             try
@@ -49,10 +48,9 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
                 }
 
                 PluginDisposableMemory<LauncherPathEntry> memory = PluginDisposableMemory<LauncherPathEntry>.Alloc();
-                memory[0] = new LauncherPathEntry();
 
                 ref LauncherPathEntry entry = ref memory[0];
-                Span<char> pathSpan = entry.Path.AsSpan();
+                entry.InitInner();
 
                 if (ApiResponse?.ResponseData == null)
                 {
@@ -66,10 +64,11 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
                 ulong fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
 
                 entry.FileHashLength = sizeof(ulong);
+                Span<char> pathSpan = entry.Path.AsSpan();
                 urlSpan.CopyTo(pathSpan[..^1]);
                 MemoryMarshal.Write(entry.FileHash.AsSpan(), in fileHashCrc);
 
-                backgroundEntriesMarshal = memory.ToMarshal();
+                backgroundEntriesMarshal = memory.ToUnmanagedMarshal();
                 return true;
             }
             finally

@@ -19,7 +19,6 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     private const string AuthenticationSalt2 = "DE7108E9B2842FD460F4777702727869";
 
     private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
-    private static readonly ILauncherApiMedia _launcherApiMedia = new HBRGlobalLauncherApiMedia("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
 
     [field: AllowNull, MaybeNull]
     public override string GameName => field ??= "Heaven Burns Red";
@@ -49,7 +48,8 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     [field: AllowNull, MaybeNull]
     public override string LauncherGameDirectoryName => field ??= "HeavenBurnsRed";
     public override List<string> SupportedLanguages => _supportedLanguages;
-    public override ILauncherApiMedia LauncherApiMedia => _launcherApiMedia;
+    public override ILauncherApiMedia? LauncherApiMedia { get; } = new HBRGlobalLauncherApiMedia("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
+    public override ILauncherApiNews? LauncherApiNews { get; } = new HBRGlobalLauncherApiNews("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
 
     protected override Task<int> InitAsync(CancellationToken token)
     {
