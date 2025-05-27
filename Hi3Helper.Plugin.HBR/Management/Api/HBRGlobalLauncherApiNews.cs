@@ -138,4 +138,14 @@ internal partial class HBRGlobalLauncherApiNews : LauncherApiNewsBase, ILauncher
 
         return false;
     }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        using (ThisInstanceLock.EnterScope())
+        {
+            ApiDownloadHttpClient.Dispose();
+            SocialApiResponse = null;
+        }
+    }
 }

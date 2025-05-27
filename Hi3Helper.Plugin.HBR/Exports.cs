@@ -49,5 +49,8 @@ namespace Hi3Helper.Plugin.HBR
             InstanceLogger?.LogTrace("[Exports::SetDnsResolverCallback] DNS Resolver callback has been attached to address: 0x{Ptr:x8}", dnsResolverCallback);
             InstanceDnsResolverCallback = Marshal.GetDelegateForFunctionPointer<SharedDnsResolverCallback>(dnsResolverCallback);
         }
+
+        [UnmanagedCallersOnly(EntryPoint = "FreePlugin", CallConvs = [typeof(CallConvCdecl)])]
+        public static void FreePlugin() => DisposePlugin();
     }
 }
