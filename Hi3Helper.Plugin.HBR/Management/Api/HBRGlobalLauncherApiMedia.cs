@@ -19,8 +19,6 @@ namespace Hi3Helper.Plugin.HBR.Management.Api;
 [GeneratedComClass]
 internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
 {
-    private readonly Lock thisInstanceLock = new();
-
     private static PluginDisposableMemoryMarshal backgroundEntriesMarshal = PluginDisposableMemoryMarshal.Empty;
 
     protected override HttpClient ApiResponseHttpClient { get; }
@@ -38,7 +36,7 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
 
     public override bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
     {
-        using (thisInstanceLock.EnterScope())
+        using (ThisInstanceLock.EnterScope())
         {
             try
             {
@@ -110,5 +108,18 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
     protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, byte[] fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
     {
         await base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        using (ThisInstanceLock.EnterScope())
+        {
+            ApiDownloadHttpClient.Dispose();
+
+            backgroundEntriesMarshal.ToManagedSpan<LauncherPathEntry>().Dispose();
+            backgroundEntriesMarshal = PluginDisposableMemoryMarshal.Empty;
+            ApiResponse = null;
+        }
     }
 }
