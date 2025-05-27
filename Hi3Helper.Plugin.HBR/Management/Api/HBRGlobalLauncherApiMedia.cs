@@ -64,8 +64,7 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
                 ulong fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
 
                 entry.FileHashLength = sizeof(ulong);
-                Span<char> pathSpan = entry.Path.AsSpan();
-                urlSpan.CopyTo(pathSpan[..^1]);
+                urlSpan.CopyToUtf8(entry.Path.AsSpan()[..^1]);
                 MemoryMarshal.Write(entry.FileHash.AsSpan(), in fileHashCrc);
 
                 backgroundEntriesMarshal = memory.ToUnmanagedMarshal();

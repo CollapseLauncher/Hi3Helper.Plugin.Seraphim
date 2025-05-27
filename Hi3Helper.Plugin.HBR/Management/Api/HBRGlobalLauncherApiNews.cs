@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -118,8 +117,8 @@ internal partial class HBRGlobalLauncherApiNews : LauncherApiNewsBase, ILauncher
                                          null,
                                          flags);
 
-                socialMediaName.CopyTo(unmanagedEntry.SocialMediaDescription.AsSpan());
-                clickUrl.CopyTo(unmanagedEntry.SocialMediaClickUrl.AsSpan());
+                socialMediaName.CopyToUtf8(unmanagedEntry.SocialMediaDescription);
+                clickUrl.CopyToUtf8(unmanagedEntry.SocialMediaClickUrl);
             }
 
             return true;
