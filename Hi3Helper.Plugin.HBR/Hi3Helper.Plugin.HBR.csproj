@@ -7,6 +7,8 @@
     <Platforms>x64</Platforms>
     <InvariantGlobalization>true</InvariantGlobalization>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>embedded</DebugType>
+    <Deterministic>true</Deterministic>
     <LangVersion>preview</LangVersion>
     <AssemblyName>Hi3Helper.Plugin.HBR</AssemblyName>
     <ProductName>Heaven Burns Red Plugin</ProductName>
