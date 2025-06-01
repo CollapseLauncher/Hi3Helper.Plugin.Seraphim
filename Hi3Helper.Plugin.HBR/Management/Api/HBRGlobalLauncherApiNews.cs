@@ -141,11 +141,16 @@ internal partial class HBRGlobalLauncherApiNews : LauncherApiNewsBase, ILauncher
 
     public override void Dispose()
     {
-        base.Dispose();
+        if (IsDisposed)
+        {
+            return;
+        }
+
         using (ThisInstanceLock.EnterScope())
         {
             ApiDownloadHttpClient.Dispose();
             SocialApiResponse = null;
+            base.Dispose();
         }
     }
 }

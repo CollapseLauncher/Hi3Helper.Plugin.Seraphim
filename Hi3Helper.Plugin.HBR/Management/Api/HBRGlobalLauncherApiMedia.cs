@@ -19,8 +19,6 @@ namespace Hi3Helper.Plugin.HBR.Management.Api;
 [GeneratedComClass]
 internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
 {
-    private static PluginDisposableMemoryMarshal backgroundEntriesMarshal = PluginDisposableMemoryMarshal.Empty;
-
     protected override HttpClient ApiResponseHttpClient { get; }
     protected          HttpClient ApiDownloadHttpClient { get; }
 
@@ -38,16 +36,11 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
     {
         using (ThisInstanceLock.EnterScope())
         {
+            PluginDisposableMemory<LauncherPathEntry> backgroundEntries = PluginDisposableMemory<LauncherPathEntry>.Alloc();
+
             try
             {
-                if (backgroundEntriesMarshal.Length != 0)
-                {
-                    return true;
-                }
-
-                PluginDisposableMemory<LauncherPathEntry> memory = PluginDisposableMemory<LauncherPathEntry>.Alloc();
-
-                ref LauncherPathEntry entry = ref memory[0];
+                ref LauncherPathEntry entry = ref backgroundEntries[0];
                 entry.InitInner();
 
                 if (ApiResponse?.ResponseData == null)
@@ -64,15 +57,13 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
                 entry.FileHashLength = sizeof(ulong);
                 urlSpan.CopyToUtf8(entry.Path.AsSpan()[..^1]);
                 MemoryMarshal.Write(entry.FileHash.AsSpan(), in fileHashCrc);
-
-                backgroundEntriesMarshal = memory.ToUnmanagedMarshal();
                 return true;
             }
             finally
             {
-                isDisposable = backgroundEntriesMarshal.IsDisposable;
-                handle = backgroundEntriesMarshal.Handle;
-                count = backgroundEntriesMarshal.Length;
+                isDisposable = backgroundEntries.IsDisposable == 1;
+                handle = backgroundEntries.AsSafePointer();
+                count = backgroundEntries.Length;
             }
         }
     }
@@ -112,14 +103,16 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
 
     public override void Dispose()
     {
-        base.Dispose();
+        if (IsDisposed)
+        {
+            return;
+        }
+
         using (ThisInstanceLock.EnterScope())
         {
             ApiDownloadHttpClient.Dispose();
-
-            backgroundEntriesMarshal.ToManagedSpan<LauncherPathEntry>().Dispose();
-            backgroundEntriesMarshal = PluginDisposableMemoryMarshal.Empty;
             ApiResponse = null;
+            base.Dispose();
         }
     }
 }

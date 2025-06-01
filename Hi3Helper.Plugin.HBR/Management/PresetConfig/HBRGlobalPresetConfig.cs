@@ -66,7 +66,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     [field: AllowNull, MaybeNull]
     public override string ZoneHomePageUrl => field ??= "https://heavenburnsred.yo-star.com/";
 
-    public override GameReleaseChannel ReleaseChannel => GameReleaseChannel.Public;
+    public override GameReleaseChannel ReleaseChannel => GameReleaseChannel.ClosedBeta;
 
     [field: AllowNull, MaybeNull]
     public override string GameMainLanguage => field ??= "en";
@@ -80,7 +80,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 
     public override ILauncherApiNews? LauncherApiNews { get; } = new HBRGlobalLauncherApiNews("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
 
-    public override IGameManager GameManager => throw new System.NotImplementedException();
+    public override IGameManager GameManager { get; } 
 
     protected override Task<int> InitAsync(CancellationToken token)
     {
