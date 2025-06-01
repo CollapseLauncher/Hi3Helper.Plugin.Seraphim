@@ -52,5 +52,8 @@ namespace Hi3Helper.Plugin.HBR
 
         [UnmanagedCallersOnly(EntryPoint = "FreePlugin", CallConvs = [typeof(CallConvCdecl)])]
         public static void FreePlugin() => DisposePlugin();
+
+        [UnmanagedCallersOnly(EntryPoint = "SetLocaleId", CallConvs = [typeof(CallConvCdecl)])]
+        public static unsafe void SetLocaleId(char* localeId) => SetPluginCurrentLocale(Mem.CreateSpanFromNullTerminated<char>(localeId));
     }
 }
