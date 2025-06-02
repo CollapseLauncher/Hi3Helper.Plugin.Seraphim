@@ -17,17 +17,17 @@ using Hi3Helper.Plugin.Core.Utility;
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 [GeneratedComClass]
-internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILauncherApiMedia
+internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase
 {
     protected override HttpClient ApiResponseHttpClient { get; }
     protected          HttpClient ApiDownloadHttpClient { get; }
+    protected override string     ApiResponseBaseUrl    { get; }
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
-    private string ApiBaseUrl { get; }
 
-    internal HBRGlobalLauncherApiMedia(string apiBaseUrl, string gameTag, string authSalt1, string authSalt2)
+    internal HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, string gameTag, string authSalt1, string authSalt2)
     {
-        ApiBaseUrl            = apiBaseUrl;
+        ApiResponseBaseUrl            = apiResponseBaseUrl;
         ApiResponseHttpClient = HBRUtility.CreateApiHttpClient(gameTag, true, true, authSalt1, authSalt2);
         ApiDownloadHttpClient = HBRUtility.CreateApiHttpClient(gameTag, false, false);
     }
@@ -84,7 +84,7 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
 
     protected override async Task<int> InitAsync(CancellationToken token)
     {
-        using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ApiBaseUrl + "api/launcher/base/config", HttpCompletionOption.ResponseHeadersRead, token);
+        using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ApiResponseBaseUrl + "api/launcher/base/config", HttpCompletionOption.ResponseHeadersRead, token);
         message.EnsureSuccessStatusCode();
 
         string jsonResponse = await message.Content.ReadAsStringAsync(token);

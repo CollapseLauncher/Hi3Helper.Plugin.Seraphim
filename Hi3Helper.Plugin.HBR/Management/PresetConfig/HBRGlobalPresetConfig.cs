@@ -10,6 +10,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using System.Threading.Tasks;
 
+// ReSharper disable IdentifierTypo
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.PresetConfig;
@@ -19,6 +20,9 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 {
     private const string AuthenticationSalt1 = "";
     private const string AuthenticationSalt2 = "DE7108E9B2842FD460F4777702727869";
+    private const string CurrentTag          = "HBR_EN";
+    private const string ExecutableName      = "HeavenBurnsRed.exe";
+    private const string ApiResponseUrl      = "https://api-launcher-en.yo-star.com/";
 
     private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
 
@@ -26,7 +30,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     public override string GameName => field ??= "Heaven Burns Red";
 
     [field: AllowNull, MaybeNull]
-    public override string GameExecutableName => field ??= "HeavenBurnsRed.exe";
+    public override string GameExecutableName => field ??= ExecutableName;
 
     [field: AllowNull, MaybeNull]
     public override string GameAppDataPath => field ??= Path.Combine(
@@ -76,11 +80,11 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 
     public override List<string> SupportedLanguages => _supportedLanguages;
 
-    public override ILauncherApiMedia? LauncherApiMedia { get; } = new HBRGlobalLauncherApiMedia("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
+    public override ILauncherApiMedia? LauncherApiMedia { get; } = new HBRGlobalLauncherApiMedia(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
 
-    public override ILauncherApiNews? LauncherApiNews { get; } = new HBRGlobalLauncherApiNews("https://api-launcher-en.yo-star.com/", "HBR_EN", AuthenticationSalt1, AuthenticationSalt2);
+    public override ILauncherApiNews? LauncherApiNews { get; } = new HBRGlobalLauncherApiNews(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
 
-    public override IGameManager GameManager { get; } 
+    public override IGameManager GameManager { get; } = new HBRGameManager(ExecutableName, ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
 
     protected override Task<int> InitAsync(CancellationToken token)
     {
