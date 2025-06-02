@@ -158,7 +158,7 @@ internal partial class HBRGameManager : GameManagerBase
         configRefMessage.EnsureSuccessStatusCode();
 
         string jsonConfigRefResponse = await configRefMessage.Content.ReadAsStringAsync(token);
-        SharedStatic.InstanceLogger?.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigResponse);
+        SharedStatic.InstanceLogger?.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigRefResponse);
 
         ApiGameDownloadRefResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfigRef>>(jsonConfigRefResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfigRef);
         ApiGameDownloadRefResponse!.EnsureSuccessCode();

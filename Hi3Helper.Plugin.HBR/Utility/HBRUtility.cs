@@ -64,7 +64,6 @@ internal static class HBRUtility
             }
 
             string currentAuthToken = GetApiAuthToken(authSalt1, authSalt2, gameTag);
-            Console.WriteLine(currentAuthToken);
             builder.AddHeader("Authorization", currentAuthToken);
         }
 
