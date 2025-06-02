@@ -3,7 +3,7 @@
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
-internal class HBRApiResponseGameConfigRef
+public class HBRApiResponseGameConfigRef
 {
     [JsonPropertyName("url")]
     public string? DownloadAssetsReferenceUrl { get; set; }

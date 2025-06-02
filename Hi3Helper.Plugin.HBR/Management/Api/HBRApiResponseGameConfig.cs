@@ -3,7 +3,7 @@
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
-internal class HBRApiResponseGameConfig
+public class HBRApiResponseGameConfig
 {
     [JsonPropertyName("game_lowest_version")]
     public string? PreviousVersion { get; set; }

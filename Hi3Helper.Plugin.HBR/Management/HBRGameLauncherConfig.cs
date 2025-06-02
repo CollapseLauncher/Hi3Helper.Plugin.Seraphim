@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 // ReSharper disable InconsistentNaming
 
@@ -11,7 +10,7 @@ namespace Hi3Helper.Plugin.HBR.Management;
 [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 public partial class HBRGameLauncherConfigContext : JsonSerializerContext;
 
-internal class HBRGameLauncherConfig
+public class HBRGameLauncherConfig
 {
     [JsonPropertyName("tag")]
     public string? GameTag { get; set; }
