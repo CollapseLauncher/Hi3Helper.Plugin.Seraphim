@@ -96,7 +96,7 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase, ILaunch
         return 0;
     }
 
-    protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, byte[] fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
+    protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, byte[]? fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
     {
         await base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
     }
