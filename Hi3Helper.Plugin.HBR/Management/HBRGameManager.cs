@@ -175,9 +175,6 @@ internal partial class HBRGameManager : GameManagerBase
         }
         ApiGameVersion = currentVersion.Value;
 
-        // Load the config
-        LoadConfig();
-
         return 0;
     }
 
@@ -188,7 +185,7 @@ internal partial class HBRGameManager : GameManagerBase
 
     internal HttpClient GetDownloadClient() => ApiDownloadHttpClient; // TODO: Use this to pass the HttpClient to the IGameInstaller instance.
 
-    private void LoadConfig()
+    public override void LoadConfig()
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
@@ -214,7 +211,7 @@ internal partial class HBRGameManager : GameManagerBase
         }
     }
 
-    private void SaveConfig()
+    public override void SaveConfig()
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
