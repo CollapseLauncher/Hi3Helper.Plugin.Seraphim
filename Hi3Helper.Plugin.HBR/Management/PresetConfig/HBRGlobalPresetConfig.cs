@@ -22,6 +22,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     private const string AuthenticationSalt2 = "DE7108E9B2842FD460F4777702727869";
     private const string CurrentTag          = "HBR_EN";
     private const string ExecutableName      = "HeavenBurnsRed.exe";
+    private const string VendorName          = "Yostar";
     private const string ApiResponseUrl      = "https://api-launcher-en.yo-star.com/";
 
     private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
@@ -44,6 +45,12 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 
     [field: AllowNull, MaybeNull]
     public override string GameLogFileName => field ??= "Player.log";
+
+    [field: AllowNull, MaybeNull]
+    public override string GameRegistryKeyName => field ??= Path.GetFileNameWithoutExtension(ExecutableName);
+    
+    [field: AllowNull, MaybeNull]
+    public override string GameVendorName => field ??= VendorName.ToLower();
 
     [field: AllowNull, MaybeNull]
     public override string ProfileName => field ??= "HBRGlobal";
