@@ -1,6 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Hi3Helper.Plugin.Core;
+using Hi3Helper.Plugin.Core.Management.Api;
+using Hi3Helper.Plugin.Core.Utility;
+using Hi3Helper.Plugin.HBR.Utility;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
@@ -8,29 +13,30 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Hi3Helper.Plugin.Core;
-using Hi3Helper.Plugin.Core.Management.Api;
-using Hi3Helper.Plugin.HBR.Utility;
-using Hi3Helper.Plugin.Core.Utility;
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 [GeneratedComClass]
-internal partial class HBRGlobalLauncherApiNews : LauncherApiNewsBase
+internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, string gameTag, string authSalt1, string authSalt2) : LauncherApiNewsBase
 {
-    protected override HttpClient ApiResponseHttpClient { get; }
-    protected          HttpClient ApiDownloadHttpClient { get; }
-    protected override string     ApiResponseBaseUrl    { get; }
+    [field: AllowNull, MaybeNull]
+    protected override HttpClient ApiResponseHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(gameTag, true, true, authSalt1, authSalt2);
+        set;
+    }
+
+    [field: AllowNull, MaybeNull]
+    protected HttpClient ApiDownloadHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(gameTag, false, false);
+        set;
+    }
+
+    protected override string ApiResponseBaseUrl { get; } = apiResponseBaseUrl;
 
     private HBRApiResponse<HBRApiResponseSocial>? SocialApiResponse { get; set; }
-
-    internal HBRGlobalLauncherApiNews(string apiResponseBaseUrl, string gameTag, string authSalt1, string authSalt2)
-    {
-        ApiResponseBaseUrl = apiResponseBaseUrl;
-        ApiResponseHttpClient = HBRUtility.CreateApiHttpClient(gameTag, true, true, authSalt1, authSalt2);
-        ApiDownloadHttpClient = HBRUtility.CreateApiHttpClient(gameTag, false, false);
-    }
 
     protected override async Task<int> InitAsync(CancellationToken token)
     {
@@ -149,6 +155,8 @@ internal partial class HBRGlobalLauncherApiNews : LauncherApiNewsBase
         using (ThisInstanceLock.EnterScope())
         {
             ApiDownloadHttpClient.Dispose();
+            ApiDownloadHttpClient = null!;
+
             SocialApiResponse = null;
             base.Dispose();
         }

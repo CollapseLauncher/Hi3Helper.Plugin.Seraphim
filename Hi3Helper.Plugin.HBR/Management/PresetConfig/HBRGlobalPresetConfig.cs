@@ -87,11 +87,24 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 
     public override List<string> SupportedLanguages => _supportedLanguages;
 
-    public override ILauncherApiMedia? LauncherApiMedia { get; } = new HBRGlobalLauncherApiMedia(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+    public override ILauncherApiMedia? LauncherApiMedia
+    {
+        get => field ??= new HBRGlobalLauncherApiMedia(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+        set;
+    }
 
-    public override ILauncherApiNews? LauncherApiNews { get; } = new HBRGlobalLauncherApiNews(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+    public override ILauncherApiNews? LauncherApiNews
+    {
+        get => field ??= new HBRGlobalLauncherApiNews(ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+        set;
+    }
 
-    public override IGameManager GameManager { get; } = new HBRGameManager(ExecutableName, ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+    [field: AllowNull, MaybeNull]
+    public override IGameManager GameManager
+    {
+        get => field ??= new HBRGameManager(ExecutableName, ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+        set;
+    }
 
     protected override Task<int> InitAsync(CancellationToken token)
     {

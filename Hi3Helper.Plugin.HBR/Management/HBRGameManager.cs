@@ -5,6 +5,7 @@ using Hi3Helper.Plugin.HBR.Management.Api;
 using Hi3Helper.Plugin.HBR.Utility;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
@@ -18,15 +19,29 @@ namespace Hi3Helper.Plugin.HBR.Management;
 [GeneratedComClass]
 internal partial class HBRGameManager : GameManagerBase
 {
-    protected override HttpClient ApiResponseHttpClient { get; }
-    protected          HttpClient ApiDownloadHttpClient { get; }
-    protected override string     ApiResponseBaseUrl    { get; }
+    [field: AllowNull, MaybeNull]
+    protected override HttpClient ApiResponseHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(CurrentGameTag, true, true, CurrentAuthSalt1, CurrentAuthSalt2);
+        set;
+    }
+        
+    [field: AllowNull, MaybeNull]
+    protected HttpClient ApiDownloadHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(CurrentGameTag, true, false, CurrentAuthSalt1, CurrentAuthSalt2);
+        set;
+    }
+
+    protected override string ApiResponseBaseUrl    { get; }
 
     private HBRApiResponse<HBRApiResponseGameConfig>?    ApiGameConfigResponse         { get; set; }
     private HBRApiResponse<HBRApiResponseGameConfigRef>? ApiGameDownloadRefResponse    { get; set; }
     private HBRGameLauncherConfig?                       CurrentGameConfig             { get; set; } = new();
     private string                                       CurrentGameTag                { get; }
     private string                                       CurrentGameExecutableByPreset { get; }
+    private string                                       CurrentAuthSalt1              { get; }
+    private string                                       CurrentAuthSalt2              { get; }
 
     internal string? GameResourceJsonUrl { get; set; }
     internal string? GameResourceBaseUrl { get; set; }
@@ -39,8 +54,8 @@ internal partial class HBRGameManager : GameManagerBase
     {
         CurrentGameExecutableByPreset = gameExecutableNameByPreset;
         ApiResponseBaseUrl            = apiResponseBaseUrl;
-        ApiResponseHttpClient         = HBRUtility.CreateApiHttpClient(gameTag, true, true,  authSalt1, authSalt2);
-        ApiDownloadHttpClient         = HBRUtility.CreateApiHttpClient(gameTag, true, false, authSalt1, authSalt2);
+        CurrentAuthSalt1              = authSalt1;
+        CurrentAuthSalt2              = authSalt2;
         CurrentGameTag                = gameTag;
     }
 
@@ -54,6 +69,10 @@ internal partial class HBRGameManager : GameManagerBase
         using (ThisInstanceLock.EnterScope())
         {
             ApiDownloadHttpClient.Dispose();
+            ApiDownloadHttpClient = null!;
+
+            ApiGameConfigResponse = null;
+            ApiGameDownloadRefResponse = null;
             base.Dispose();
         }
     }
@@ -204,6 +223,7 @@ internal partial class HBRGameManager : GameManagerBase
         {
             using FileStream fileStream = fileInfo.OpenRead();
             CurrentGameConfig           = JsonSerializer.Deserialize(fileStream, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
+            SharedStatic.InstanceLogger?.LogError("Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
         }
         catch (Exception ex)
         {
@@ -237,5 +257,6 @@ internal partial class HBRGameManager : GameManagerBase
 
         CurrentGameConfig = configToSave;
         JsonSerializer.Serialize(fileStream, configToSave, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
+        SharedStatic.InstanceLogger?.LogError("Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
     }
 }

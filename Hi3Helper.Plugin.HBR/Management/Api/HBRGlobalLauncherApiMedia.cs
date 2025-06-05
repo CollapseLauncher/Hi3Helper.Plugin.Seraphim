@@ -1,36 +1,41 @@
-﻿using System;
+﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management.Api;
+using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Utility;
-using Hi3Helper.Plugin.Core;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Runtime.InteropServices.Marshalling;
-using System.Threading.Tasks;
-using System.Threading;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.IO;
-using Hi3Helper.Plugin.Core.Utility;
-
+using System.Runtime.InteropServices.Marshalling;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 [GeneratedComClass]
-internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase
+internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, string gameTag, string authSalt1, string authSalt2) : LauncherApiMediaBase
 {
-    protected override HttpClient ApiResponseHttpClient { get; }
-    protected          HttpClient ApiDownloadHttpClient { get; }
-    protected override string     ApiResponseBaseUrl    { get; }
+    [field: AllowNull, MaybeNull]
+    protected override HttpClient ApiResponseHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(gameTag, true, true, authSalt1, authSalt2);
+        set;
+    }
+
+    [field: AllowNull, MaybeNull]
+    protected HttpClient ApiDownloadHttpClient
+    {
+        get => field ??= HBRUtility.CreateApiHttpClient(gameTag, false, false);
+        set;
+    }
+
+    protected override string ApiResponseBaseUrl { get; } = apiResponseBaseUrl;
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
-
-    internal HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, string gameTag, string authSalt1, string authSalt2)
-    {
-        ApiResponseBaseUrl            = apiResponseBaseUrl;
-        ApiResponseHttpClient = HBRUtility.CreateApiHttpClient(gameTag, true, true, authSalt1, authSalt2);
-        ApiDownloadHttpClient = HBRUtility.CreateApiHttpClient(gameTag, false, false);
-    }
 
     public override bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
     {
@@ -111,6 +116,8 @@ internal partial class HBRGlobalLauncherApiMedia : LauncherApiMediaBase
         using (ThisInstanceLock.EnterScope())
         {
             ApiDownloadHttpClient.Dispose();
+            ApiDownloadHttpClient = null!;
+
             ApiResponse = null;
             base.Dispose();
         }
