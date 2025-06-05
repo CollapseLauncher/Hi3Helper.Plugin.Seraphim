@@ -118,7 +118,7 @@ internal partial class HBRGameManager : GameManagerBase
     }
 
     protected override bool HasPreload  => ApiPreloadGameVersion != GameVersion.Empty && !HasUpdate;
-    protected override bool HasUpdate   => ApiGameVersion != CurrentGameVersion;
+    protected override bool HasUpdate   => IsInstalled && CurrentGameVersion != GameVersion.Empty && ApiGameVersion != CurrentGameVersion;
     protected override bool IsInstalled
     {
         get
