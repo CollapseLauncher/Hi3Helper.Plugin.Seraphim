@@ -202,6 +202,9 @@ internal partial class HBRGameManager : GameManagerBase
         return base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
     }
 
+    // TODO: Implement the existing game install path search logic.
+    protected override Task<string?> FindExistingInstallPathAsyncInner(CancellationToken token) => Task.FromResult<string?>(null);
+
     internal HttpClient GetDownloadClient() => ApiDownloadHttpClient; // TODO: Use this to pass the HttpClient to the IGameInstaller instance.
 
     public override void LoadConfig()
