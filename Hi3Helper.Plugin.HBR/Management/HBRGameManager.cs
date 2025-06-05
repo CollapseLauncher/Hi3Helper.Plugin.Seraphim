@@ -208,6 +208,7 @@ internal partial class HBRGameManager : GameManagerBase
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
+            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be loaded.");
             return;
         }
 
@@ -216,6 +217,7 @@ internal partial class HBRGameManager : GameManagerBase
 
         if (!fileInfo.Exists)
         {
+            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] File game-launcher-config.json doesn't exist on dir: {Dir}", CurrentGameInstallPath);
             return;
         }
 
@@ -223,11 +225,11 @@ internal partial class HBRGameManager : GameManagerBase
         {
             using FileStream fileStream = fileInfo.OpenRead();
             CurrentGameConfig           = JsonSerializer.Deserialize(fileStream, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
-            SharedStatic.InstanceLogger?.LogError("Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
+            SharedStatic.InstanceLogger?.LogTrace("[HBRGameManager::LoadConfig] Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
         }
         catch (Exception ex)
         {
-            SharedStatic.InstanceLogger?.LogError("Cannot load game-launcher-config.json! Reason: {Exception}", ex);
+            SharedStatic.InstanceLogger?.LogError("[HBRGameManager::LoadConfig] Cannot load game-launcher-config.json! Reason: {Exception}", ex);
         }
     }
 
@@ -235,6 +237,7 @@ internal partial class HBRGameManager : GameManagerBase
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
+            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be saved.");
             return;
         }
 
@@ -257,6 +260,6 @@ internal partial class HBRGameManager : GameManagerBase
 
         CurrentGameConfig = configToSave;
         JsonSerializer.Serialize(fileStream, configToSave, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
-        SharedStatic.InstanceLogger?.LogError("Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
+        SharedStatic.InstanceLogger?.LogTrace("[HBRGameManager::SaveConfig] Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
     }
 }
