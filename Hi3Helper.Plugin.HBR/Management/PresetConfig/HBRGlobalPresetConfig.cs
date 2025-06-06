@@ -18,12 +18,13 @@ namespace Hi3Helper.Plugin.HBR.Management.PresetConfig;
 [GeneratedComClass]
 public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 {
+    private const string ApiResponseUrl      = "https://api-launcher-en.yo-star.com/";
     private const string AuthenticationSalt1 = "";
     private const string AuthenticationSalt2 = "DE7108E9B2842FD460F4777702727869";
+    private const string CurrentUninstKey    = "8873065a-4511-50bb-94ed-24aee5a854b1";
     private const string CurrentTag          = "HBR_EN";
     private const string ExecutableName      = "HeavenBurnsRed.exe";
     private const string VendorName          = "Yostar";
-    private const string ApiResponseUrl      = "https://api-launcher-en.yo-star.com/";
 
     private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
 
@@ -99,10 +100,9 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
         set;
     }
 
-    [field: AllowNull, MaybeNull]
-    public override IGameManager GameManager
+    public override IGameManager? GameManager
     {
-        get => field ??= new HBRGameManager(ExecutableName, ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2);
+        get => field ??= new HBRGameManager(ExecutableName, ApiResponseUrl, CurrentTag, AuthenticationSalt1, AuthenticationSalt2, CurrentUninstKey);
         set;
     }
 

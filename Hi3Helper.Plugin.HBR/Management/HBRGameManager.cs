@@ -4,6 +4,7 @@ using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using Hi3Helper.Plugin.HBR.Utility;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -13,6 +14,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
+// ReSharper disable IdentifierTypo
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
@@ -42,6 +44,7 @@ internal partial class HBRGameManager : GameManagerBase
     private string                                       CurrentGameExecutableByPreset { get; }
     private string                                       CurrentAuthSalt1              { get; }
     private string                                       CurrentAuthSalt2              { get; }
+    private string?                                      CurrentGameLauncherUninstKey  { get; }
 
     internal string? GameResourceJsonUrl { get; set; }
     internal string? GameResourceBaseUrl { get; set; }
@@ -50,8 +53,10 @@ internal partial class HBRGameManager : GameManagerBase
                             string apiResponseBaseUrl,
                             string gameTag,
                             string authSalt1,
-                            string authSalt2)
+                            string authSalt2,
+                            string? launcherUninstallKey)
     {
+        CurrentGameLauncherUninstKey  = launcherUninstallKey;
         CurrentGameExecutableByPreset = gameExecutableNameByPreset;
         ApiResponseBaseUrl            = apiResponseBaseUrl;
         CurrentAuthSalt1              = authSalt1;
@@ -203,7 +208,50 @@ internal partial class HBRGameManager : GameManagerBase
     }
 
     // TODO: Implement the existing game install path search logic.
-    protected override Task<string?> FindExistingInstallPathAsyncInner(CancellationToken token) => Task.FromResult<string?>(null);
+#pragma warning disable CA1416
+    protected override Task<string?> FindExistingInstallPathAsyncInner(CancellationToken token)
+        => Task.Factory.StartNew<string?>(() =>
+        {
+            if (FindRegistryPath() is not { } rootKey)
+                return null;
+
+            if (rootKey.GetValue("UninstallString") is not string pathString ||
+                !Path.Exists(pathString)) return null;
+
+            string? rootSearchPath = Path.GetDirectoryName(Path.GetDirectoryName(pathString));
+            if (string.IsNullOrEmpty(rootSearchPath))
+                return null;
+
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (string path in Directory.EnumerateDirectories(rootSearchPath, $"*{CurrentGameExecutableByPreset}", SearchOption.AllDirectories))
+            {
+                string? parentPath = Path.GetDirectoryName(path);
+                if (parentPath == null)
+                    continue;
+
+                string jsonPath = Path.Combine(parentPath, "game-launcher-config.json");
+                if (File.Exists(jsonPath))
+                {
+                    return parentPath;
+                }
+            }
+
+            return null;
+        }, token);
+
+    private RegistryKey? FindRegistryPath()
+    {
+        const string Wow6432Node = @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\";
+        if (string.IsNullOrEmpty(CurrentGameLauncherUninstKey))
+        {
+            return null;
+        }
+
+        using RegistryKey? wow6432RootKey = Registry.LocalMachine.OpenSubKey(Wow6432Node);
+        RegistryKey?       launcherKey = wow6432RootKey?.OpenSubKey(CurrentGameLauncherUninstKey);
+        return launcherKey;
+    }
+#pragma warning restore CA1416
 
     internal HttpClient GetDownloadClient() => ApiDownloadHttpClient; // TODO: Use this to pass the HttpClient to the IGameInstaller instance.
 
