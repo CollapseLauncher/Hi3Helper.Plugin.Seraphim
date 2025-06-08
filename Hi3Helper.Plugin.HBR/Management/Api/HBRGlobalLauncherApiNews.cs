@@ -98,33 +98,15 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
                     continue;
                 }
 
-                void* iconDataPtr = MemoryMarshal.GetArrayDataReference(iconData).AsPointer();
-                int iconDataLength = iconData.Length;
-
-                LauncherSocialMediaEntryFlag flags = LauncherSocialMediaEntryFlag.IconIsDataBuffer |
-                                                     LauncherSocialMediaEntryFlag.HasClickUrl |
-                                                     LauncherSocialMediaEntryFlag.HasDescription;
-
                 ref LauncherSocialMediaEntry unmanagedEntry = ref memory[i];
                 if (!string.IsNullOrEmpty(qrImageUrl))
                 {
-                    flags |= LauncherSocialMediaEntryFlag.QrImageIsPath | LauncherSocialMediaEntryFlag.HasQrImage;
+                    unmanagedEntry.WriteQrImage(qrImageUrl);
                 }
 
-                unmanagedEntry.InitInner(iconDataPtr,
-                                         iconDataLength,
-                                         false,
-                                         null,
-                                         0,
-                                         false,
-                                         null,
-                                         0,
-                                         false,
-                                         null,
-                                         flags);
-
-                socialMediaName.CopyToUtf8(unmanagedEntry.SocialMediaDescription);
-                clickUrl.CopyToUtf8(unmanagedEntry.SocialMediaClickUrl);
+                unmanagedEntry.WriteIcon(iconData);
+                unmanagedEntry.WriteDescription(socialMediaName);
+                unmanagedEntry.WriteClickUrl(clickUrl);
             }
 
             return true;

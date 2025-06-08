@@ -202,7 +202,7 @@ internal partial class HBRGameManager : GameManagerBase
         return 0;
     }
 
-    protected override Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, byte[]? fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
+    protected override Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, PluginDisposableMemory<byte> fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
     {
         return base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
     }

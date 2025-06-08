@@ -7,7 +7,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Json;
 using System.Threading;
@@ -37,7 +36,7 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
 
-    public override bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
+    public override unsafe bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
     {
         using (ThisInstanceLock.EnterScope())
         {
@@ -46,7 +45,6 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
             try
             {
                 ref LauncherPathEntry entry = ref backgroundEntries[0];
-                entry.InitInner();
 
                 if (ApiResponse?.ResponseData == null)
                 {
@@ -56,12 +54,10 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
                     return false;
                 }
 
-                ReadOnlySpan<char> urlSpan = ApiResponse.ResponseData.BackgroundImageUrl.AsSpan();
                 ulong fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
+                void* ptr = &fileHashCrc;
 
-                entry.FileHashLength = sizeof(ulong);
-                urlSpan.CopyToUtf8(entry.Path.AsSpan()[..^1]);
-                MemoryMarshal.Write(entry.FileHash.AsSpan(), in fileHashCrc);
+                entry.Write(ApiResponse.ResponseData.BackgroundImageUrl, new Span<byte>(ptr, sizeof(ulong)));
                 return true;
             }
             finally
@@ -101,7 +97,7 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         return 0;
     }
 
-    protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, byte[]? fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
+    protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, PluginDisposableMemory<byte> fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)
     {
         await base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
     }
