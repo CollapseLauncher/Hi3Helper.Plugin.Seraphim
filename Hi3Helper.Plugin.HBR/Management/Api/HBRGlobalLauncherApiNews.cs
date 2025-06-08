@@ -68,6 +68,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
             if (SocialApiResponse?.ResponseData?.SocialMediaEntries == null ||
                 SocialApiResponse.ResponseData.SocialMediaEntries.Count == 0)
             {
+                SharedStatic.InstanceLogger?.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] API provides no Social Media entries!");
                 return InitializeEmpty(out handle, out count, out isDisposable);
             }
 
