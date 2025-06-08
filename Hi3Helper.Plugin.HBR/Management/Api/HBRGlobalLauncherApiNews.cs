@@ -61,7 +61,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
     public override bool GetCarouselEntries(out nint handle, out int count, out bool isDisposable)
         => InitializeEmpty(out handle, out count, out isDisposable);
 
-    public override unsafe bool GetSocialMediaEntries(out nint handle, out int count, out bool isDisposable)
+    public override bool GetSocialMediaEntries(out nint handle, out int count, out bool isDisposable)
     {
         try
         {
