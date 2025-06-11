@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 
-namespace Hi3Helper.EncTool.Test;
+namespace Hi3Helper.Plugin.HBR.Utility;
 
 public sealed class Crc64Ecma() : NonCryptographicHashAlgorithm(8)
 {
