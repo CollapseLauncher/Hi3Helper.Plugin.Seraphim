@@ -20,10 +20,13 @@ public class HBRApiGameInstallManifest
 public class GameInstallAsset
 {
     [JsonConverter(typeof(HBRUlongToBytesJsonConverter))]
+    [JsonPropertyName("hash")]
     public byte[]? AssetHash { get; set; }
-    
+
+    [JsonPropertyName("path")]
     public string? AssetPath { get; set; }
 
     [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    [JsonPropertyName("size")]
     public long AssetSize { get; set; }
 }
