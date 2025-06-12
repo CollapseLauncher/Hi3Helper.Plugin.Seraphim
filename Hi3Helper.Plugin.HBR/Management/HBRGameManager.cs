@@ -35,7 +35,7 @@ internal partial class HBRGameManager : GameManagerBase
         set;
     }
 
-    protected override string ApiResponseBaseUrl    { get; }
+    protected override string ApiResponseBaseUrl { get; }
 
     private HBRApiResponse<HBRApiResponseGameConfig>?    ApiGameConfigResponse         { get; set; }
     private HBRApiResponse<HBRApiResponseGameConfigRef>? ApiGameDownloadRefResponse    { get; set; }
@@ -48,6 +48,7 @@ internal partial class HBRGameManager : GameManagerBase
 
     internal string? GameResourceJsonUrl { get; set; }
     internal string? GameResourceBaseUrl { get; set; }
+    internal bool    IsInitialized       { get; set; }
 
     internal HBRGameManager(string gameExecutableNameByPreset,
                             string apiResponseBaseUrl,
@@ -151,8 +152,15 @@ internal partial class HBRGameManager : GameManagerBase
         }
     }
 
-    protected override async Task<int> InitAsync(CancellationToken token)
+    protected override Task<int> InitAsync(CancellationToken token) => InitAsyncInner(true, token);
+
+    internal async Task<int> InitAsyncInner(bool forceInit = false, CancellationToken token = default)
     {
+        if (!forceInit && IsInitialized)
+        {
+            return 0;
+        }
+
         // Retrieve Game Config API
         string gameConfigUrl = ApiResponseBaseUrl + "api/launcher/game/config";
 
@@ -197,7 +205,9 @@ internal partial class HBRGameManager : GameManagerBase
         {
             throw new InvalidOperationException($"API GameConfig returns an invalid CurrentVersion data! Data: {ApiGameConfigResponse.ResponseData.CurrentVersion}");
         }
+
         ApiGameVersion = currentVersion.Value;
+        IsInitialized  = true;
 
         return 0;
     }

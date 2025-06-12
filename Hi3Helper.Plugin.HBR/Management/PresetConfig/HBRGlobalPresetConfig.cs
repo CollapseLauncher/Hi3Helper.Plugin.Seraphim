@@ -106,6 +106,12 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
         set;
     }
 
+    public override IGameInstaller? GameInstaller
+    {
+        get => field ??= new HBRGameInstaller(GameManager);
+        set;
+    }
+
     protected override Task<int> InitAsync(CancellationToken token)
     {
         return Task.FromResult(0);
