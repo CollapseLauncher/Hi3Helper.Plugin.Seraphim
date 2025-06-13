@@ -148,7 +148,7 @@ internal partial class HBRGameManager : GameManagerBase
         CurrentGameInstallPath = gamePath;
         if (isSave)
         {
-            SaveConfig();
+            SaveConfig(true);
         }
     }
 
@@ -294,11 +294,17 @@ internal partial class HBRGameManager : GameManagerBase
         }
     }
 
-    public override void SaveConfig()
+    public override void SaveConfig(bool updatePathOnly = false)
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
             SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be saved.");
+            return;
+        }
+
+        // Ignore inner config changes if there's only path changes.
+        if (updatePathOnly)
+        {
             return;
         }
 
@@ -311,13 +317,22 @@ internal partial class HBRGameManager : GameManagerBase
             fileInfo.IsReadOnly = false;
         }
 
-        using FileStream      fileStream   = fileInfo.Create();
-        HBRGameLauncherConfig configToSave = new HBRGameLauncherConfig
+        using FileStream fileStream = fileInfo.Open(FileMode.OpenOrCreate);
+        HBRGameLauncherConfig? configToSave = null;
+        try
         {
-            ExecutableName = ApiGameConfigResponse?.ResponseData?.GameExecutableFileName ?? Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset),
-            GameTag        = CurrentGameTag,
-            Version        = CurrentGameVersion.ToString()
-        };
+            configToSave = JsonSerializer.Deserialize<HBRGameLauncherConfig>(fileStream, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
+        }
+        catch
+        {
+            // Ignored
+        }
+
+        configToSave ??= new HBRGameLauncherConfig();
+
+        configToSave.ExecutableName = ApiGameConfigResponse?.ResponseData?.GameExecutableFileName ?? Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset);
+        configToSave.GameTag = CurrentGameTag;
+        configToSave.Version = CurrentGameVersion.ToString();
 
         CurrentGameConfig = configToSave;
         JsonSerializer.Serialize(fileStream, configToSave, HBRGameLauncherConfigContext.Default.HBRGameLauncherConfig);
