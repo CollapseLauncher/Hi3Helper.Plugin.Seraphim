@@ -73,7 +73,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     public override string ZoneLogoUrl => field ??= "https://cdn2.steamgriddb.com/logo_thumb/dae6042416a1c9e5ffbb1d51e9dab7d0.png";
 
     [field: AllowNull, MaybeNull]
-    public override string ZonePosterUrl => field ??= "https://launcher-pkg-hbr-en.yo-star.com/prod/HBR_EN/launcher_background_img/998105fcbe05f3a9202906dc4f0a43ae.png";
+    public override string ZonePosterUrl => field ??= "https://raw.githubusercontent.com/CollapseLauncher/CollapseLauncher-ReleaseRepo/refs/heads/main/metadata/game_posters/poster_hbrtest.png";
 
     [field: AllowNull, MaybeNull]
     public override string ZoneHomePageUrl => field ??= "https://heavenburnsred.yo-star.com/";
