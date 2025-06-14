@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
-[JsonSerializable(typeof(HBRGameLauncherConfig))]
 [JsonSerializable(typeof(HBRGameManifest))]
 [JsonSourceGenerationOptions(
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -20,18 +19,6 @@ public partial class HBRGameLauncherConfigContext : JsonSerializerContext;
 
 public class HBRGameLauncherConfig
 {
-    [JsonPropertyName("tag")]
-    public string? GameTag { get; set; }
-
-    [JsonPropertyName("name")]
-    public string? ExecutableName { get; set; }
-
-    [JsonPropertyName("version")]
-    public string? Version { get; set; }
-
-    [JsonPropertyName("vc")]
-    public string ConfigSignature => GetConfigSalt(ExecutableName, GameTag, Version);
-
     internal static string GetConfigSalt(params ReadOnlySpan<string?> salts)
     {
         string configSalt = string.Join(';', salts);
@@ -64,7 +51,7 @@ public class HBRGameManifest
     public List<HBRGameManifestEntry>? ManifestEntries { get; set; }
 
     public HBRGameManifest AsManifest(string gameBasis, string gameTag, string gameVersion)
-        => new HBRGameManifest()
+        => new()
         {
             GamePackageBasis = gameBasis,
             GameTag          = gameTag,
