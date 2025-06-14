@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -126,7 +127,7 @@ internal partial class HBRGameManager : GameManagerBase
     }
 
     protected override bool HasPreload  => ApiPreloadGameVersion != GameVersion.Empty && !HasUpdate;
-    protected override bool HasUpdate   => IsInstalled && CurrentGameVersion != GameVersion.Empty && ApiGameVersion != CurrentGameVersion;
+    protected override bool HasUpdate   => IsInstalled && ApiGameVersion != CurrentGameVersion;
     protected override bool IsInstalled
     {
         get
