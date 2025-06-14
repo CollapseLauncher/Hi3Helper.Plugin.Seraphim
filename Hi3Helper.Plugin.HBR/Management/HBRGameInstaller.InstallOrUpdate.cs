@@ -1,52 +1,53 @@
-﻿using Hi3Helper.Plugin.Core.Management;
+﻿using Hi3Helper.Plugin.Core;
+using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using Hi3Helper.Plugin.HBR.Utility;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Hi3Helper.Plugin.Core;
-using Microsoft.Extensions.Logging;
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
 // ReSharper disable once InconsistentNaming
 public partial class HBRGameInstaller
 {
-    private async ValueTask StartInstallOrUpdateAsync(
+    private async ValueTask StartInstallAsyncInner(
         string gamePath,
+        InstallProgress installProgress,
+        List<GameInstallAsset> assets,
+        string assetRootSuffix,
         InstallProgressDelegate? progressDelegate,
         InstallProgressStateDelegate? progressStateDelegate,
-        CancellationToken token)
+        bool isDownloadThroughMode = false,
+        CancellationToken token = default)
     {
-        if (_currentGameAssetManifest?.GameAssets == null)
+        if (assets.Count == 0)
         {
-            throw new NullReferenceException("_currentGameAssetManifest is null!");
+            return;
         }
 
         TimeSpan timedOutCancelTokenSpan = TimeSpan.FromSeconds(10);
-        InstallProgress installProgress = new InstallProgress
-        {
-            StateCount           = 1,
-            TotalStateToComplete = 1,
-            DownloadedCount      = 0,
-            TotalCountToDownload = _currentGameAssetManifest.GameAssets.Count,
-            DownloadedBytes      = 0,
-            TotalBytesToDownload = _currentGameAssetManifest.GameAssets.Sum(x => x.AssetSize)
-        };
+        installProgress.DownloadedCount = 0;
+        installProgress.TotalCountToDownload = assets.Count;
+        installProgress.DownloadedBytes = 0;
+        installProgress.TotalBytesToDownload = assets.Sum(x => x.AssetSize);
 
-        string baseUrl = GameAssetBaseUrl.CombineUrlFromString(_currentGameAssetManifest.RootSuffixPath);
+        string baseUrl = GameAssetBaseUrl.CombineUrlFromString(assetRootSuffix);
         if (string.IsNullOrEmpty(baseUrl))
         {
             throw new NullReferenceException("Base URL cannot be retrieved as it's null-ed!");
         }
 
         // Perform write execution
-        await Parallel.ForEachAsync(_currentGameAssetManifest.GameAssets, new ParallelOptions
+        await Parallel.ForEachAsync(assets, new ParallelOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             CancellationToken      = token
@@ -61,7 +62,7 @@ public partial class HBRGameInstaller
                 throw new NullReferenceException("AssetPath is null!");
             }
 
-            string   filePath = Path.Combine(gamePath, asset.AssetPath);
+            string   filePath = Path.Combine(gamePath, asset.AssetPath.TrimStart("/\\").ToString());
             FileInfo fileInfo = new FileInfo(filePath);
             fileInfo.Directory?.Create();
 
@@ -70,35 +71,52 @@ public partial class HBRGameInstaller
                 fileInfo.IsReadOnly = false;
             }
 
-            await using FileStream fileStream = fileInfo.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+#if DEBUG
+            if (!fileInfo.Exists)
+            {
+                SharedStatic.InstanceLogger?.LogTrace("File: {FilePath} doesn't exist! Creating new...", fileInfo.FullName);
+            }
+#endif
+
+            await using FileStream fileStream = fileInfo.Open(
+                isDownloadThroughMode ? FileMode.Create : FileMode.OpenOrCreate,
+                isDownloadThroughMode ? FileAccess.Write : FileAccess.ReadWrite,
+                isDownloadThroughMode ? FileShare.Write : FileShare.ReadWrite);
             Interlocked.Increment(ref installProgress.DownloadedCount);
             progressDelegate?.Invoke(in installProgress);
             progressStateDelegate?.Invoke(InstallProgressState.Download);
 
-            if (fileInfo.Exists &&
-                fileInfo.Length == asset.AssetPath.Length &&
-                await IsHashMatchedAsync(
-                    fileStream,
-                    asset,
-                    read =>
-                    {
-                        Interlocked.Add(ref installProgress.DownloadedBytes, read);
-                        progressDelegate?.Invoke(in installProgress);
-                    },
-                    innerToken))
+            if (!isDownloadThroughMode)
             {
-                SharedStatic.InstanceLogger?.LogInformation("Download for file: {FilePath} is completed!", fileStream.Name);
-                return;
+                if (fileInfo.Exists &&
+                    fileInfo.Length == asset.AssetSize &&
+                    await IsHashMatchedAsync(
+                        fileStream,
+                        asset,
+                        read =>
+                        {
+                            Interlocked.Add(ref installProgress.DownloadedBytes, read);
+                            progressDelegate?.Invoke(in installProgress);
+                        },
+                        innerToken))
+                {
+                    SharedStatic.InstanceLogger?.LogInformation("Download for file: {FilePath} is completed!", fileStream.Name);
+                    return;
+                }
             }
 
             // Reset the length of an existing file (if any)
             fileStream.SetLength(0);
+            string assetDownloadUrl = baseUrl.CombineUrlFromString(asset.AssetPath);
 
-            using HttpResponseMessage responseMessage = await _downloadHttpClient.GetAsync(baseUrl, HttpCompletionOption.ResponseHeadersRead, innerToken);
+#if DEBUG
+            SharedStatic.InstanceLogger?.LogTrace("Trying to download the asset from URL: {AssetUrl}", assetDownloadUrl);
+#endif
+            using HttpResponseMessage responseMessage = await _downloadHttpClient.GetAsync(assetDownloadUrl, HttpCompletionOption.ResponseHeadersRead, innerToken);
             if (!responseMessage.IsSuccessStatusCode)
             {
                 throw new HttpRequestException(
-                    $"Cannot retrieve file from URL: {baseUrl} (Status Code: {responseMessage.StatusCode} ({(int)responseMessage.StatusCode})",
+                    $"Cannot retrieve file from URL: {assetDownloadUrl} (Status Code: {responseMessage.StatusCode} ({(int)responseMessage.StatusCode}))",
                     null,
                     responseMessage.StatusCode);
             }
@@ -139,6 +157,65 @@ public partial class HBRGameInstaller
                 cooperatedCancelToken.Dispose();
                 ArrayPool<byte>.Shared.Return(buffer);
             }
+        }
+    }
+
+    private static async Task<List<GameInstallAsset>> StartGetMismatchedAssets(
+        string gamePath,
+        InstallProgress installProgress,
+        List<GameInstallAsset> assets,
+        InstallProgressDelegate? progressDelegate,
+        InstallProgressStateDelegate? progressStateDelegate,
+        CancellationToken token = default)
+    {
+        ConcurrentQueue<GameInstallAsset> queue = [];
+        installProgress.DownloadedCount = 0;
+        installProgress.TotalCountToDownload = assets.Count;
+        installProgress.DownloadedBytes = 0;
+        installProgress.TotalBytesToDownload = assets.Sum(x => x.AssetSize);
+
+        progressDelegate?.Invoke(in installProgress);
+        progressStateDelegate?.Invoke(InstallProgressState.Verify);
+
+        // Perform read-verify execution
+        await Parallel.ForEachAsync(assets, new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            CancellationToken = token
+        }, Impl);
+
+        return queue.ToList();
+
+        async ValueTask Impl(GameInstallAsset asset, CancellationToken innerToken)
+        {
+            string filePath = Path.Combine(gamePath, asset.AssetPath.TrimStart("/\\").ToString());
+            FileInfo fileInfo = new FileInfo(filePath);
+
+            if (!fileInfo.Exists || fileInfo.Length != asset.AssetSize)
+            {
+                queue.Enqueue(asset);
+                Interlocked.Add(ref installProgress.DownloadedBytes, asset.AssetSize);
+                progressDelegate?.Invoke(in installProgress);
+                return;
+            }
+
+            await using FileStream readOnlyStream = fileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (await IsHashMatchedAsync(
+                    readOnlyStream,
+                    asset,
+                    read =>
+                    {
+                        Interlocked.Add(ref installProgress.DownloadedBytes, read);
+                        progressDelegate?.Invoke(in installProgress);
+                    },
+                    innerToken))
+            {
+                return;
+            }
+
+            queue.Enqueue(asset);
+            Interlocked.Add(ref installProgress.DownloadedBytes, asset.AssetSize);
+            progressDelegate?.Invoke(in installProgress);
         }
     }
 

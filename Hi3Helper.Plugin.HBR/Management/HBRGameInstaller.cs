@@ -21,6 +21,8 @@ using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -77,20 +79,71 @@ public partial class HBRGameInstaller : GameInstallerBase
         };
     }
 
+    protected override async Task<long> GetGameDownloadedSizeAsyncInner(
+        GameInstallerKind gameInstallerKind,
+        CancellationToken token)
+    {
+        if (_currentGameAssetManifest == null)
+        {
+            return 0L;
+        }
+
+        // Ensure the data is always been initialized
+        await InitAsync(token);
+
+        return await Task.Factory.StartNew(() =>
+        {
+            string gamePath = EnsureAndGetGamePath();
+
+            return gameInstallerKind switch
+            {
+                GameInstallerKind.None => 0,
+                GameInstallerKind.Install or GameInstallerKind.Update => _currentGameAssetManifest.GameAssets?.Sum(x =>
+                {
+                    if (string.IsNullOrEmpty(x.AssetPath))
+                    {
+                        return 0;
+                    }
+
+                    string filePath = Path.Combine(gamePath, x.AssetPath.TrimStart("/\\").ToString());
+                    FileInfo fileInfo = new FileInfo(filePath);
+                    return !fileInfo.Exists || fileInfo.Length != x.AssetSize ? 0 : fileInfo.Length;
+                }) ?? 0L,
+                GameInstallerKind.Preload => _preloadGameAssetManifest?.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
+                _ => throw new InvalidOperationException()
+            };
+        }, token);
+    }
+
     protected override async Task StartInstallAsyncInner(
         InstallProgressDelegate? progressDelegate,
         InstallProgressStateDelegate? progressStateDelegate,
         CancellationToken token)
     {
+        // Show preparing state and perform update
+        progressStateDelegate?.Invoke(InstallProgressState.Preparing);
+
         // Ensure the data is always been initialized
         await InitAsync(token);
 
+        // Create progress struct
+        InstallProgress progressStruct = new InstallProgress
+        {
+            StateCount = 1,
+            TotalStateToComplete = 1
+        };
+
         // Get the path
         string gamePath = EnsureAndGetGamePath();
-
-        // Show preparing state and perform update
-        progressStateDelegate?.Invoke(InstallProgressState.Preparing);
-        await StartInstallOrUpdateAsync(gamePath, progressDelegate, progressStateDelegate, token);
+        await StartInstallAsyncInner(
+            gamePath,
+            progressStruct,
+            _currentGameAssetManifest?.GameAssets ?? throw new NullReferenceException("_currentGameAssetManifest?.GameAssets is null!"),
+            _currentGameAssetManifest?.RootSuffixPath ?? "",
+            progressDelegate,
+            progressStateDelegate,
+            false,
+            token);
 
         // We need to set the game path and set the version of the current game. So, save the configuration.
         GameManager.GetApiGameVersion(out GameVersion latestVersion);
@@ -98,12 +151,51 @@ public partial class HBRGameInstaller : GameInstallerBase
         GameManager.SaveConfig();
     }
 
-    protected override Task StartUpdateAsyncInner(
+    protected override async Task StartUpdateAsyncInner(
         InstallProgressDelegate? progressDelegate,
         InstallProgressStateDelegate? progressStateDelegate,
         CancellationToken token)
-        // Reuse installation method as the logic is pretty much the same
-        => StartInstallAsyncInner(progressDelegate, progressStateDelegate, token);
+    {
+        // Show preparing state and perform update
+        progressStateDelegate?.Invoke(InstallProgressState.Preparing);
+
+        // Ensure the data is always been initialized
+        await InitAsync(token);
+
+        // Get the path and perform validation
+        string gamePath = EnsureAndGetGamePath();
+        List<GameInstallAsset> needUpdateAssets = await StartGetMismatchedAssets(
+            gamePath,
+            new InstallProgress
+            {
+                StateCount = 1,
+                TotalStateToComplete = 2
+            },
+            _currentGameAssetManifest?.GameAssets ?? throw new NullReferenceException("_currentGameAssetManifest?.GameAssets is null!"),
+            progressDelegate,
+            progressStateDelegate,
+            token);
+
+        // Then start the update
+        await StartInstallAsyncInner(
+            gamePath,
+            new InstallProgress
+            {
+                StateCount = 2,
+                TotalStateToComplete = 2
+            },
+            needUpdateAssets,
+            _currentGameAssetManifest?.RootSuffixPath ?? "",
+            progressDelegate,
+            progressStateDelegate,
+            true,
+            token);
+
+        // We need to set the game path and set the version of the current game. So, save the configuration.
+        GameManager.GetApiGameVersion(out GameVersion latestVersion);
+        GameManager.SetCurrentGameVersion(latestVersion);
+        GameManager.SaveConfig();
+    }
 
     protected override async Task StartPreloadAsyncInner(
         InstallProgressDelegate? progressDelegate,
