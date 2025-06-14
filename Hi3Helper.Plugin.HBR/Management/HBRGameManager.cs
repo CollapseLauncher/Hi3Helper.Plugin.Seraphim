@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
@@ -204,6 +205,9 @@ internal partial class HBRGameManager : GameManagerBase
         return base.DownloadAssetAsyncInner(ApiDownloadHttpClient, fileUrl, outputStream, fileChecksum, downloadProgress, token);
     }
 
+    [GeneratedRegex("^\"?(?<path>[^\"]+?\\.exe)\"?")]
+    public static partial Regex FilterUninstallKeyRegexMatch();
+
     // TODO: Implement the existing game install path search logic.
 #pragma warning disable CA1416
     protected override Task<string?> FindExistingInstallPathAsyncInner(CancellationToken token)
@@ -212,24 +216,55 @@ internal partial class HBRGameManager : GameManagerBase
             if (FindRegistryPath() is not { } rootKey)
                 return null;
 
-            if (rootKey.GetValue("UninstallString") is not string pathString ||
-                !Path.Exists(pathString)) return null;
+            if (rootKey.GetValue("UninstallString") is not string pathString)
+            {
+#if DEBUG
+                SharedStatic.InstanceLogger?.LogTrace("Type of the value from Registry Key is not a string!");
+#endif
+                return null;
+            }
+
+            Match regexMatch = FilterUninstallKeyRegexMatch().Match(pathString);
+            if (regexMatch.Success)
+            {
+                pathString = regexMatch.Groups["path"].Value;
+            }
+
+            if (!Path.Exists(pathString))
+            {
+#if DEBUG
+                SharedStatic.InstanceLogger?.LogTrace("Cannot find uninstall path at: {Path}", pathString);
+#endif
+            }
 
             string? rootSearchPath = Path.GetDirectoryName(Path.GetDirectoryName(pathString));
             if (string.IsNullOrEmpty(rootSearchPath))
                 return null;
 
             // ReSharper disable once LoopCanBeConvertedToQuery
-            foreach (string path in Directory.EnumerateDirectories(rootSearchPath, $"*{CurrentGameExecutableByPreset}", SearchOption.AllDirectories))
+            string gameName = Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset);
+#if DEBUG
+            SharedStatic.InstanceLogger?.LogTrace("Start finding game existing installation using prefix: {PrefixName} from root path: {RootPath}", gameName, rootSearchPath);
+#endif
+            foreach (string dirPath in Directory.EnumerateDirectories(rootSearchPath, $"{gameName}", SearchOption.AllDirectories))
             {
-                string? parentPath = Path.GetDirectoryName(path);
-                if (parentPath == null)
-                    continue;
-
-                string jsonPath = Path.Combine(parentPath, "game-launcher-config.json");
-                if (File.Exists(jsonPath))
+#if DEBUG
+                SharedStatic.InstanceLogger?.LogTrace("Checking for game presence in directory: {DirPath}", dirPath);
+#endif
+                foreach (string path in Directory.EnumerateFiles(dirPath, $"*{gameName}*", SearchOption.TopDirectoryOnly))
                 {
-                    return parentPath;
+#if DEBUG
+                    SharedStatic.InstanceLogger?.LogTrace("Got executable file at: {ExecPath}", path);
+#endif
+                    string? parentPath = Path.GetDirectoryName(path);
+                    if (parentPath == null)
+                        continue;
+
+                    string jsonPath = Path.Combine(parentPath, "game-launcher-config.json");
+                    if (File.Exists(jsonPath))
+                    {
+                        return parentPath;
+                    }
                 }
             }
 
@@ -246,6 +281,18 @@ internal partial class HBRGameManager : GameManagerBase
 
         using RegistryKey? wow6432RootKey = Registry.LocalMachine.OpenSubKey(Wow6432Node);
         RegistryKey?       launcherKey = wow6432RootKey?.OpenSubKey(CurrentGameLauncherUninstKey);
+
+#if DEBUG
+        if (launcherKey == null)
+        {
+            SharedStatic.InstanceLogger?.LogTrace("Cannot find registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
+        }
+        else
+        {
+            SharedStatic.InstanceLogger?.LogTrace("Found registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
+        }
+#endif
+
         return launcherKey;
     }
 #pragma warning restore CA1416
