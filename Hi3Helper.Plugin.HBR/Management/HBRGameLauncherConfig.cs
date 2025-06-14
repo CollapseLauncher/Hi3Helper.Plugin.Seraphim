@@ -61,7 +61,7 @@ public class HBRGameManifest
         };
 
     [JsonPropertyName("vc")]
-    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(GamePackageBasis, GameTag, $"{GameVersion}");
+    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(GameTag, $"{GameVersion}", GamePackageBasis);
 }
 
 public class HBRGameManifestEntry
@@ -71,7 +71,7 @@ public class HBRGameManifestEntry
     public byte[]? AssetCrc64Hash { get; set; }
 
     [JsonIgnore]
-    public string AssetAsString => $"{BitConverter.ToUInt64(AssetCrc64Hash)}";
+    public string AssetCrc64HashAsString => $"{BitConverter.ToUInt64(AssetCrc64Hash)}";
 
     [JsonPropertyName("path")]
     public string? AssetPath { get; set; }
@@ -81,7 +81,7 @@ public class HBRGameManifestEntry
     public long AssetSize { get; set; }
 
     [JsonPropertyName("vc")]
-    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(AssetAsString, AssetPath, $"{AssetSize}");
+    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(AssetPath, AssetCrc64HashAsString, $"{AssetSize}");
 }
 
 public class HBRCrc64HashConverter : JsonConverter<byte[]>

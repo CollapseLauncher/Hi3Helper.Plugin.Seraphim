@@ -43,15 +43,17 @@ internal partial class HBRGameManager : GameManagerBase
     private HBRApiResponse<HBRApiResponseGameConfig>?    ApiGameConfigResponse         { get; set; }
     private HBRApiResponse<HBRApiResponseGameConfigRef>? ApiGameDownloadRefResponse    { get; set; }
     private JsonObject                                   CurrentGameConfigNode         { get; set; } = new();
-    private string                                       CurrentGameTag                { get; }
     private string                                       CurrentGameExecutableByPreset { get; }
     private string                                       CurrentAuthSalt1              { get; }
     private string                                       CurrentAuthSalt2              { get; }
     private string?                                      CurrentGameLauncherUninstKey  { get; }
 
-    internal string? GameResourceJsonUrl { get; set; }
-    internal string? GameResourceBaseUrl { get; set; }
-    internal bool    IsInitialized       { get; set; }
+    internal string CurrentGameTag { get; }
+
+    internal string? GameResourceJsonUrl   { get; set; }
+    internal string? GameResourceBaseUrl   { get; set; }
+    internal string? GameResourceBasisPath { get; set; }
+    internal bool    IsInitialized         { get; set; }
 
     internal HBRGameManager(string gameExecutableNameByPreset,
                             string apiResponseBaseUrl,
@@ -132,8 +134,16 @@ internal partial class HBRGameManager : GameManagerBase
     {
         get
         {
-            string executablePath = Path.Combine(CurrentGameInstallPath ?? string.Empty, CurrentGameExecutableByPreset);
-            return File.Exists(executablePath);
+            string executablePath1 = Path.Combine(CurrentGameInstallPath ?? string.Empty, CurrentGameExecutableByPreset);
+            string executablePath2 = Path.Combine(CurrentGameInstallPath ?? string.Empty, Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset) + "_Data", "globalgamemanagers");
+            string executablePath3 = Path.Combine(CurrentGameInstallPath ?? string.Empty, Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset) + "_Data", "app.info");
+            string executablePath4 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "UnityPlayer.dll");
+            string executablePath5 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "GameAssembly.dll");
+            return File.Exists(executablePath1) &&
+                File.Exists(executablePath2) &&
+                File.Exists(executablePath3) &&
+                File.Exists(executablePath4) &&
+                File.Exists(executablePath5);
         }
     }
 
@@ -167,13 +177,14 @@ internal partial class HBRGameManager : GameManagerBase
             throw new NullReferenceException("Game API Launcher cannot retrieve CurrentVersion value!");
         }
 
-        if (ApiGameConfigResponse.ResponseData?.GameZipLocalPath == null)
+        GameResourceBasisPath = ApiGameConfigResponse.ResponseData.GameZipLocalPath;
+        if (GameResourceBasisPath == null)
         {
             throw new NullReferenceException("Game API Launcher cannot retrieve GameZipLocalPath reference value!");
         }
 
         // Retrieve Game Config Reference API
-        string gameConfigRefUrl = gameConfigUrl + $"/json?version={ApiGameConfigResponse.ResponseData.CurrentVersion}&file_path={ApiGameConfigResponse.ResponseData.GameZipLocalPath}";
+        string gameConfigRefUrl = gameConfigUrl + $"/json?version={ApiGameConfigResponse.ResponseData.CurrentVersion}&file_path={GameResourceBasisPath}";
 
         using HttpResponseMessage configRefMessage = await ApiResponseHttpClient.GetAsync(gameConfigRefUrl, HttpCompletionOption.ResponseHeadersRead, token);
         configRefMessage.EnsureSuccessStatusCode();
@@ -346,8 +357,8 @@ internal partial class HBRGameManager : GameManagerBase
         }
 
         string vcSalt = HBRGameLauncherConfig
-            .GetConfigSalt(CurrentGameConfigNode.GetConfigValue<string?>("name"),
-                           CurrentGameConfigNode.GetConfigValue<string?>("tag"),
+            .GetConfigSalt(CurrentGameConfigNode.GetConfigValue<string?>("tag"),
+                           CurrentGameConfigNode.GetConfigValue<string?>("name"),
                            CurrentGameConfigNode.GetConfigValue<string?>("version"));
         CurrentGameConfigNode.SetConfigValue("vc", vcSalt);
 
@@ -360,13 +371,14 @@ internal partial class HBRGameManager : GameManagerBase
             fileInfo.IsReadOnly = false;
         }
 
-        using FileStream fileStream = fileInfo.Open(FileMode.Create);
+        using FileStream fileStream = fileInfo.Create();
         using Utf8JsonWriter writer = new Utf8JsonWriter(fileStream, new JsonWriterOptions
         {
             Indented = true,
             IndentSize = 2,
             IndentCharacter = ' ',
-            NewLine = "\n"
+            NewLine = "\n",
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
 
         CurrentGameConfigNode.WriteTo(writer);

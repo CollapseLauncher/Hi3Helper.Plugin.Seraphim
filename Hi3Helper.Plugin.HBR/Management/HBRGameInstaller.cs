@@ -21,12 +21,17 @@ using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices.Marshalling;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,8 +45,9 @@ public partial class HBRGameInstaller : GameInstallerBase
 
     private DateTimeOffset _cacheExpiredUntil = DateTimeOffset.MinValue;
 
-    private string? GameManifestUrl  => (GameManager as HBRGameManager)?.GameResourceJsonUrl;
-    private string? GameAssetBaseUrl => (GameManager as HBRGameManager)?.GameResourceBaseUrl;
+    private string? GameManifestUrl    => (GameManager as HBRGameManager)?.GameResourceJsonUrl;
+    private string? GameAssetBaseUrl   => (GameManager as HBRGameManager)?.GameResourceBaseUrl;
+    private string? GameAssetBasisPath => (GameManager as HBRGameManager)?.GameResourceBasisPath;
 
     private HBRApiGameInstallManifest? _currentGameAssetManifest;
     private HBRApiGameInstallManifest? _preloadGameAssetManifest;
@@ -149,6 +155,9 @@ public partial class HBRGameInstaller : GameInstallerBase
         GameManager.GetApiGameVersion(out GameVersion latestVersion);
         GameManager.SetCurrentGameVersion(latestVersion);
         GameManager.SaveConfig();
+
+        // Write manifest
+        await WriteCachedManifestFile(token);
     }
 
     protected override async Task StartUpdateAsyncInner(
@@ -195,6 +204,9 @@ public partial class HBRGameInstaller : GameInstallerBase
         GameManager.GetApiGameVersion(out GameVersion latestVersion);
         GameManager.SetCurrentGameVersion(latestVersion);
         GameManager.SaveConfig();
+
+        // Write manifest
+        await WriteCachedManifestFile(token);
     }
 
     protected override async Task StartPreloadAsyncInner(
@@ -253,6 +265,62 @@ public partial class HBRGameInstaller : GameInstallerBase
         UpdateCacheExpiration();
 
         return 0;
+    }
+
+    private async Task WriteCachedManifestFile(CancellationToken token)
+    {
+        if (_currentGameAssetManifest?.GameAssets == null ||
+            _currentGameAssetManifest.GameAssets.Count == 0 ||
+            GameManager is not HBRGameManager manager)
+        {
+            return;
+        }
+
+        manager.GetApiGameVersion(out GameVersion latestVersion);
+        if (latestVersion == GameVersion.Empty)
+        {
+            return;
+        }
+
+        string filePath = Path.Combine(EnsureAndGetGamePath(), "manifest.json");
+        FileInfo fileInfo = new FileInfo(filePath);
+        if (fileInfo.Exists)
+        {
+            fileInfo.IsReadOnly = false;
+        }
+        fileInfo.Directory?.Create();
+
+        HBRGameManifest manifest = await Task.Factory.StartNew(() =>
+        {
+            return new HBRGameManifest
+            {
+                GamePackageBasis = GameAssetBasisPath,
+                GameTag = manager.CurrentGameTag,
+                GameVersion = latestVersion.ToString(),
+                ManifestEntries = _currentGameAssetManifest.GameAssets.Select(x => new HBRGameManifestEntry
+                {
+                    AssetCrc64Hash = x.AssetHash,
+                    AssetPath = x.AssetPath,
+                    AssetSize = x.AssetSize,
+                }).ToList()
+            };
+        }, token);
+
+        await using FileStream stream = fileInfo.Create();
+        JavaScriptEncoder jsonEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        JsonWriterOptions jsonWriterOptionsIndented = new()
+        {
+            Indented = true,
+            IndentCharacter = ' ',
+            IndentSize = 2,
+            NewLine = "\n",
+            Encoder = jsonEncoder
+        };
+
+        await using Utf8JsonWriter jsonWriterIndented = new(stream, jsonWriterOptionsIndented);
+        await Task.Factory.StartNew(() =>
+            JsonSerializer.Serialize(jsonWriterIndented, manifest, HBRGameLauncherConfigContext.Default.HBRGameManifest),
+            token);
     }
 
     private bool IsCacheExpired()        => DateTimeOffset.UtcNow > _cacheExpiredUntil;
