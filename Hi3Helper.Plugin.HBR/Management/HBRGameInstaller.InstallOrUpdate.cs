@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,7 +33,6 @@ public partial class HBRGameInstaller
             return;
         }
 
-        TimeSpan timedOutCancelTokenSpan = TimeSpan.FromSeconds(10);
         installProgress.DownloadedCount = 0;
         installProgress.TotalCountToDownload = assets.Count;
         installProgress.DownloadedBytes = 0;
@@ -112,51 +110,27 @@ public partial class HBRGameInstaller
 #if DEBUG
             SharedStatic.InstanceLogger?.LogTrace("Trying to download the asset from URL: {AssetUrl}", assetDownloadUrl);
 #endif
-            using HttpResponseMessage responseMessage = await _downloadHttpClient.GetAsync(assetDownloadUrl, HttpCompletionOption.ResponseHeadersRead, innerToken);
-            if (!responseMessage.IsSuccessStatusCode)
+
+            // Use Retry-able Copy-To Stream task to start the download
+            await using RetryableCopyToStreamTask downloadTask = RetryableCopyToStreamTask
+                .CreateTask(
+                    async (pos, thisCtx) => await BridgedNetworkStream.CreateStream(_downloadHttpClient, assetDownloadUrl, pos, null, thisCtx),
+                    fileStream,
+                    new RetryableCopyToStreamTaskOptions
+                    {
+                        IsDisposeTargetStream = true,
+                        MaxBufferSize = 4 << 10,
+                        MaxRetryCount = 5,
+                        MaxTimeoutSeconds = 5d,
+                        RetryDelaySeconds = 0d
+                    });
+
+            // Start download task
+            await downloadTask.StartTaskAsync(read =>
             {
-                throw new HttpRequestException(
-                    $"Cannot retrieve file from URL: {assetDownloadUrl} (Status Code: {responseMessage.StatusCode} ({(int)responseMessage.StatusCode}))",
-                    null,
-                    responseMessage.StatusCode);
-            }
-
-            await using Stream networkStream = await responseMessage.Content.ReadAsStreamAsync(innerToken);
-
-            byte[]                  buffer                  = ArrayPool<byte>.Shared.Rent(4 << 10);
-            CancellationTokenSource timedOutReadCancelToken = new CancellationTokenSource(timedOutCancelTokenSpan);
-            CancellationTokenSource cooperatedCancelToken   = CancellationTokenSource.CreateLinkedTokenSource(timedOutReadCancelToken.Token, innerToken);
-            try
-            {
-                int read;
-                while ((read = await networkStream.ReadAsync(new Memory<byte>(buffer, 0, buffer.Length), cooperatedCancelToken.Token)) > 0)
-                {
-                    // Dispose, free resources before updating and writing to local stream.
-                    timedOutReadCancelToken.Dispose();
-                    cooperatedCancelToken.Dispose();
-
-                    // The reason to silent the warning is that, for writing to local stream, the completion is always
-                    // guaranteed (unless the user had a bad drive due to bad sector, etc.). The OS won't throw a timed-out exception
-                    // even at the slowest storage possible (unless, again, the user had a bad drive).
-
-                    // ReSharper disable once PossiblyMistakenUseOfCancellationToken
-                    await fileStream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, read), innerToken);
-                    Interlocked.Add(ref installProgress.DownloadedBytes, read);
-                    progressDelegate?.Invoke(in installProgress);
-
-                    // Refresh da token
-                    timedOutReadCancelToken = new CancellationTokenSource(timedOutCancelTokenSpan);
-                    cooperatedCancelToken   = CancellationTokenSource.CreateLinkedTokenSource(timedOutReadCancelToken.Token, innerToken);
-                }
-
-                SharedStatic.InstanceLogger?.LogInformation("Download for file: {FilePath} is completed!", fileStream.Name);
-            }
-            finally
-            {
-                timedOutReadCancelToken.Dispose();
-                cooperatedCancelToken.Dispose();
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+                Interlocked.Add(ref installProgress.DownloadedBytes, read);
+                progressDelegate?.Invoke(in installProgress);
+            }, innerToken);
         }
     }
 
