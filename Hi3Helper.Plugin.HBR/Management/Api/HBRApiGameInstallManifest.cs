@@ -1,6 +1,7 @@
-﻿using Hi3Helper.Plugin.HBR.Utility;
+﻿using Hi3Helper.Plugin.Core.Utility.Json.Converters;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
@@ -19,7 +20,7 @@ public class HBRApiGameInstallManifest
 
 public class GameInstallAsset
 {
-    [JsonConverter(typeof(HBRUlongToBytesJsonConverter))]
+    [JsonConverter(typeof(NumberToBytesJsonConverter<ulong>))]
     [JsonPropertyName("hash")]
     public byte[]? AssetHash { get; set; }
 

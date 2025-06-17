@@ -1,6 +1,7 @@
 ﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
+using Hi3Helper.Plugin.Core.Utility.Json;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using Hi3Helper.Plugin.HBR.Utility;
 using Microsoft.Extensions.Logging;
@@ -98,34 +99,29 @@ internal partial class HBRGameManager : GameManagerBase
                 return GameVersion.Empty;
             }
 
-            if (!GameVersion.TryParse(version, out GameVersion? currentGameVersion))
+            if (!GameVersion.TryParse(version, null, out GameVersion currentGameVersion))
             {
                 currentGameVersion = GameVersion.Empty;
             }
 
-            return currentGameVersion.Value;
+            return currentGameVersion;
         }
         set => CurrentGameConfigNode.SetConfigValue("version", value.ToString());
     }
 
-    private GameVersion? _apiGameVersion;
     protected override GameVersion ApiGameVersion
     {
         get
         {
-            if (_apiGameVersion.HasValue)
+            if (ApiGameConfigResponse?.ResponseData == null)
             {
-                return _apiGameVersion.Value;
+                return GameVersion.Empty;
             }
 
-            if (!GameVersion.TryParse(ApiGameConfigResponse?.ResponseData?.CurrentVersion, out _apiGameVersion))
-            {
-                _apiGameVersion = GameVersion.Empty;
-            }
-
-            return _apiGameVersion.Value;
+            field = ApiGameConfigResponse.ResponseData.CurrentVersion;
+            return field;
         }
-        set => _apiGameVersion = value;
+        set;
     }
 
     protected override bool HasPreload  => ApiPreloadGameVersion != GameVersion.Empty && !HasUpdate;
@@ -172,7 +168,12 @@ internal partial class HBRGameManager : GameManagerBase
         ApiGameConfigResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfig>>(jsonConfigResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfig);
         ApiGameConfigResponse!.EnsureSuccessCode();
 
-        if (ApiGameConfigResponse.ResponseData?.CurrentVersion == null)
+        if (ApiGameConfigResponse.ResponseData == null)
+        {
+            throw new NullReferenceException("ApiGameConfigResponse.ResponseData returns null!");
+        }
+
+        if (ApiGameConfigResponse.ResponseData.CurrentVersion == GameVersion.Empty)
         {
             throw new NullReferenceException("Game API Launcher cannot retrieve CurrentVersion value!");
         }
@@ -193,20 +194,25 @@ internal partial class HBRGameManager : GameManagerBase
         SharedStatic.InstanceLogger?.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigRefResponse);
 
         ApiGameDownloadRefResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfigRef>>(jsonConfigRefResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfigRef);
-        ApiGameDownloadRefResponse!.EnsureSuccessCode();
+        ApiGameDownloadRefResponse?.EnsureSuccessCode();
 
-        GameResourceJsonUrl = ApiGameDownloadRefResponse.ResponseData?.DownloadAssetsReferenceUrl ?? throw new NullReferenceException("Game API Launcher cannot retrieve DownloadAssetsReferenceUrl value!");
+        if (ApiGameDownloadRefResponse?.ResponseData == null)
+        {
+            throw new NullReferenceException("ApiGameDownloadRefResponse.ResponseData returns null!");
+        }
+
+        GameResourceJsonUrl = ApiGameDownloadRefResponse.ResponseData.DownloadAssetsReferenceUrl ?? throw new NullReferenceException("Game API Launcher cannot retrieve DownloadAssetsReferenceUrl value!");
 
         Uri gameResourceBase = new Uri(GameResourceJsonUrl);
         GameResourceBaseUrl = $"{gameResourceBase.Scheme}://{gameResourceBase.Host}";
 
         // Set API current game version
-        if (!GameVersion.TryParse(ApiGameConfigResponse.ResponseData.CurrentVersion, out GameVersion? currentVersion))
+        if (ApiGameConfigResponse.ResponseData.CurrentVersion == GameVersion.Empty)
         {
             throw new InvalidOperationException($"API GameConfig returns an invalid CurrentVersion data! Data: {ApiGameConfigResponse.ResponseData.CurrentVersion}");
         }
 
-        ApiGameVersion = currentVersion.Value;
+        ApiGameVersion = ApiGameConfigResponse.ResponseData.CurrentVersion;
         IsInitialized  = true;
 
         return 0;

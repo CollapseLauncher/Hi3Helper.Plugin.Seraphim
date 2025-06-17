@@ -7,6 +7,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Json;
 using System.Threading;
@@ -54,10 +55,10 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
                     return false;
                 }
 
-                ulong fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
-                void* ptr = &fileHashCrc;
+                byte[]? fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
+                void* ptr = fileHashCrc == null ? null : (void*)Marshal.UnsafeAddrOfPinnedArrayElement(fileHashCrc, 0);
 
-                entry.Write(ApiResponse.ResponseData.BackgroundImageUrl, new Span<byte>(ptr, sizeof(ulong)));
+                entry.Write(ApiResponse.ResponseData.BackgroundImageUrl, ptr == null ? Span<byte>.Empty : new Span<byte>(ptr, sizeof(ulong)));
                 return true;
             }
             finally

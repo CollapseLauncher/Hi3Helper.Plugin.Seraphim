@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using Hi3Helper.Plugin.Core.Management;
+using Hi3Helper.Plugin.Core.Utility.Json.Converters;
+using System.Text.Json.Serialization;
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
@@ -6,10 +8,12 @@ namespace Hi3Helper.Plugin.HBR.Management.Api;
 public class HBRApiResponseGameConfig
 {
     [JsonPropertyName("game_lowest_version")]
-    public string? PreviousVersion { get; set; }
+    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<GameVersion>))]
+    public GameVersion PreviousVersion { get; set; }
 
     [JsonPropertyName("game_latest_version")]
-    public string? CurrentVersion { get; set; }
+    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<GameVersion>))]
+    public GameVersion CurrentVersion { get; set; }
 
     [JsonPropertyName("game_latest_file_path")]
     public string? GameZipLocalPath { get; set; }
