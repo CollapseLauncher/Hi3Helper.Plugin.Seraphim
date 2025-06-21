@@ -42,7 +42,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
         message.EnsureSuccessStatusCode();
 
         string jsonResponse = await message.Content.ReadAsStringAsync(token);
-        SharedStatic.InstanceLogger?.LogTrace("API Social Media and News response: {JsonResponse}", jsonResponse);
+        SharedStatic.InstanceLogger.LogTrace("API Social Media and News response: {JsonResponse}", jsonResponse);
 
         SocialApiResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseSocial>>(jsonResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseSocial);
         SocialApiResponse!.EnsureSuccessCode();
@@ -66,7 +66,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
             if (SocialApiResponse?.ResponseData?.SocialMediaEntries == null ||
                 SocialApiResponse.ResponseData.SocialMediaEntries.Count == 0)
             {
-                SharedStatic.InstanceLogger?.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] API provides no Social Media entries!");
+                SharedStatic.InstanceLogger.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] API provides no Social Media entries!");
                 return InitializeEmpty(out handle, out count, out isDisposable);
             }
 
@@ -83,7 +83,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
             count = entryCount;
             isDisposable = true;
 
-            SharedStatic.InstanceLogger?.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] {EntryCount} entries are allocated at: 0x{Address:x8}", entryCount, handle);
+            SharedStatic.InstanceLogger.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] {EntryCount} entries are allocated at: 0x{Address:x8}", entryCount, handle);
 
             for (int i = 0; i < entryCount; i++)
             {
@@ -112,7 +112,7 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
         }
         catch (Exception ex)
         {
-            SharedStatic.InstanceLogger?.LogError(ex, "Failed to get social media entries");
+            SharedStatic.InstanceLogger.LogError(ex, "Failed to get social media entries");
             return InitializeEmpty(out handle, out count, out isDisposable);
         }
     }

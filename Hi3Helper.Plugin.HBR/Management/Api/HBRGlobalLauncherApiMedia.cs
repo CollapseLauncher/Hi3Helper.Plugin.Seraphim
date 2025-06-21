@@ -90,7 +90,7 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         message.EnsureSuccessStatusCode();
 
         string jsonResponse = await message.Content.ReadAsStringAsync(token);
-        SharedStatic.InstanceLogger?.LogTrace("API Media response: {JsonResponse}", jsonResponse);
+        SharedStatic.InstanceLogger.LogTrace("API Media response: {JsonResponse}", jsonResponse);
 
         ApiResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseMedia>>(jsonResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseMedia);
         ApiResponse!.EnsureSuccessCode();

@@ -72,7 +72,7 @@ public partial class HBRGameInstaller
 #if DEBUG
             if (!fileInfo.Exists)
             {
-                SharedStatic.InstanceLogger?.LogTrace("File: {FilePath} doesn't exist! Creating new...", fileInfo.FullName);
+                SharedStatic.InstanceLogger.LogTrace("File: {FilePath} doesn't exist! Creating new...", fileInfo.FullName);
             }
 #endif
 
@@ -98,7 +98,7 @@ public partial class HBRGameInstaller
                         },
                         innerToken))
                 {
-                    SharedStatic.InstanceLogger?.LogInformation("Download for file: {FilePath} is completed!", fileStream.Name);
+                    SharedStatic.InstanceLogger.LogInformation("Download for file: {FilePath} is completed!", fileStream.Name);
                     return;
                 }
             }
@@ -108,7 +108,7 @@ public partial class HBRGameInstaller
             string assetDownloadUrl = baseUrl.CombineUrlFromString(asset.AssetPath);
 
 #if DEBUG
-            SharedStatic.InstanceLogger?.LogTrace("Trying to download the asset from URL: {AssetUrl}", assetDownloadUrl);
+            SharedStatic.InstanceLogger.LogTrace("Trying to download the asset from URL: {AssetUrl}", assetDownloadUrl);
 #endif
 
             // Use Retry-able Copy-To Stream task to start the download
@@ -229,7 +229,7 @@ public partial class HBRGameInstaller
 
             // Otherwise if it keeps failing, then return false and restore the order.
             Array.Reverse(hashResult);
-            SharedStatic.InstanceLogger?.LogError(
+            SharedStatic.InstanceLogger.LogError(
                 "Hash for: {FilePath} isn't match! {HashRemote} Remote != {HashLocal} Local. Download will be restarted!",
                 fileStream.Name,
                 Convert.ToHexStringLower(asset.AssetHash),

@@ -163,7 +163,7 @@ internal partial class HBRGameManager : GameManagerBase
         configMessage.EnsureSuccessStatusCode();
 
         string jsonConfigResponse = await configMessage.Content.ReadAsStringAsync(token);
-        SharedStatic.InstanceLogger?.LogTrace("API GameConfig response: {JsonResponse}", jsonConfigResponse);
+        SharedStatic.InstanceLogger.LogTrace("API GameConfig response: {JsonResponse}", jsonConfigResponse);
 
         ApiGameConfigResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfig>>(jsonConfigResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfig);
         ApiGameConfigResponse!.EnsureSuccessCode();
@@ -191,7 +191,7 @@ internal partial class HBRGameManager : GameManagerBase
         configRefMessage.EnsureSuccessStatusCode();
 
         string jsonConfigRefResponse = await configRefMessage.Content.ReadAsStringAsync(token);
-        SharedStatic.InstanceLogger?.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigRefResponse);
+        SharedStatic.InstanceLogger.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigRefResponse);
 
         ApiGameDownloadRefResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfigRef>>(jsonConfigRefResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfigRef);
         ApiGameDownloadRefResponse?.EnsureSuccessCode();
@@ -237,7 +237,7 @@ internal partial class HBRGameManager : GameManagerBase
             if (rootKey.GetValue("UninstallString") is not string pathString)
             {
 #if DEBUG
-                SharedStatic.InstanceLogger?.LogTrace("Type of the value from Registry Key is not a string!");
+                SharedStatic.InstanceLogger.LogTrace("Type of the value from Registry Key is not a string!");
 #endif
                 return null;
             }
@@ -251,7 +251,7 @@ internal partial class HBRGameManager : GameManagerBase
             if (!Path.Exists(pathString))
             {
 #if DEBUG
-                SharedStatic.InstanceLogger?.LogTrace("Cannot find uninstall path at: {Path}", pathString);
+                SharedStatic.InstanceLogger.LogTrace("Cannot find uninstall path at: {Path}", pathString);
 #endif
             }
 
@@ -262,17 +262,17 @@ internal partial class HBRGameManager : GameManagerBase
             // ReSharper disable once LoopCanBeConvertedToQuery
             string gameName = Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset);
 #if DEBUG
-            SharedStatic.InstanceLogger?.LogTrace("Start finding game existing installation using prefix: {PrefixName} from root path: {RootPath}", gameName, rootSearchPath);
+            SharedStatic.InstanceLogger.LogTrace("Start finding game existing installation using prefix: {PrefixName} from root path: {RootPath}", gameName, rootSearchPath);
 #endif
             foreach (string dirPath in Directory.EnumerateDirectories(rootSearchPath, $"{gameName}", SearchOption.AllDirectories))
             {
 #if DEBUG
-                SharedStatic.InstanceLogger?.LogTrace("Checking for game presence in directory: {DirPath}", dirPath);
+                SharedStatic.InstanceLogger.LogTrace("Checking for game presence in directory: {DirPath}", dirPath);
 #endif
                 foreach (string path in Directory.EnumerateFiles(dirPath, $"*{gameName}*", SearchOption.TopDirectoryOnly))
                 {
 #if DEBUG
-                    SharedStatic.InstanceLogger?.LogTrace("Got executable file at: {ExecPath}", path);
+                    SharedStatic.InstanceLogger.LogTrace("Got executable file at: {ExecPath}", path);
 #endif
                     string? parentPath = Path.GetDirectoryName(path);
                     if (parentPath == null)
@@ -303,11 +303,11 @@ internal partial class HBRGameManager : GameManagerBase
 #if DEBUG
         if (launcherKey == null)
         {
-            SharedStatic.InstanceLogger?.LogTrace("Cannot find registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
+            SharedStatic.InstanceLogger.LogTrace("Cannot find registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
         }
         else
         {
-            SharedStatic.InstanceLogger?.LogTrace("Found registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
+            SharedStatic.InstanceLogger.LogTrace("Found registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
         }
 #endif
 
@@ -321,7 +321,7 @@ internal partial class HBRGameManager : GameManagerBase
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
-            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be loaded.");
+            SharedStatic.InstanceLogger.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be loaded.");
             return;
         }
 
@@ -330,7 +330,7 @@ internal partial class HBRGameManager : GameManagerBase
 
         if (!fileInfo.Exists)
         {
-            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] File game-launcher-config.json doesn't exist on dir: {Dir}", CurrentGameInstallPath);
+            SharedStatic.InstanceLogger.LogWarning("[HBRGameManager::LoadConfig] File game-launcher-config.json doesn't exist on dir: {Dir}", CurrentGameInstallPath);
             return;
         }
 
@@ -338,11 +338,11 @@ internal partial class HBRGameManager : GameManagerBase
         {
             using FileStream fileStream = fileInfo.OpenRead();
             CurrentGameConfigNode = JsonNode.Parse(fileStream) as JsonObject ?? new JsonObject();
-            SharedStatic.InstanceLogger?.LogTrace("[HBRGameManager::LoadConfig] Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
+            SharedStatic.InstanceLogger.LogTrace("[HBRGameManager::LoadConfig] Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
         }
         catch (Exception ex)
         {
-            SharedStatic.InstanceLogger?.LogError("[HBRGameManager::LoadConfig] Cannot load game-launcher-config.json! Reason: {Exception}", ex);
+            SharedStatic.InstanceLogger.LogError("[HBRGameManager::LoadConfig] Cannot load game-launcher-config.json! Reason: {Exception}", ex);
         }
     }
 
@@ -350,7 +350,7 @@ internal partial class HBRGameManager : GameManagerBase
     {
         if (string.IsNullOrEmpty(CurrentGameInstallPath))
         {
-            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be saved.");
+            SharedStatic.InstanceLogger.LogWarning("[HBRGameManager::LoadConfig] Game directory isn't set! Game config won't be saved.");
             return;
         }
 
@@ -358,7 +358,7 @@ internal partial class HBRGameManager : GameManagerBase
         CurrentGameConfigNode.SetConfigValueIfEmpty("name", ApiGameConfigResponse?.ResponseData?.GameExecutableFileName ?? Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset));
         if (CurrentGameVersion == GameVersion.Empty)
         {
-            SharedStatic.InstanceLogger?.LogWarning("[HBRGameManager::SaveConfig] Current version returns 0.0.0! Overwrite the version to current provided version by API, {VersionApi}", ApiGameVersion);
+            SharedStatic.InstanceLogger.LogWarning("[HBRGameManager::SaveConfig] Current version returns 0.0.0! Overwrite the version to current provided version by API, {VersionApi}", ApiGameVersion);
             CurrentGameVersion = ApiGameVersion;
         }
 
@@ -388,6 +388,6 @@ internal partial class HBRGameManager : GameManagerBase
         });
 
         CurrentGameConfigNode.WriteTo(writer);
-        SharedStatic.InstanceLogger?.LogTrace("[HBRGameManager::SaveConfig] Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
+        SharedStatic.InstanceLogger.LogTrace("[HBRGameManager::SaveConfig] Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
     }
 }
