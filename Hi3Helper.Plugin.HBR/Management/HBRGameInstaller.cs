@@ -21,7 +21,6 @@ using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +47,9 @@ public partial class HBRGameInstaller : GameInstallerBase
     private string? GameAssetBasisPath => (GameManager as HBRGameManager)?.GameResourceBasisPath;
 
     private HBRApiGameInstallManifest? _currentGameAssetManifest;
-    private HBRApiGameInstallManifest? _preloadGameAssetManifest;
+    
+    // TODO: Use this field to determine preload state.
+    // private HBRApiGameInstallManifest? _preloadGameAssetManifest;
 
     private readonly HttpClient _downloadHttpClient;
 
@@ -78,7 +79,8 @@ public partial class HBRGameInstaller : GameInstallerBase
         {
             GameInstallerKind.None => 0,
             GameInstallerKind.Install or GameInstallerKind.Update => _currentGameAssetManifest.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
-            GameInstallerKind.Preload => _preloadGameAssetManifest?.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
+            // TODO: Use this field to determine preload state.
+            // GameInstallerKind.Preload => _preloadGameAssetManifest?.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
             _ => throw new InvalidOperationException()
         };
     }
@@ -113,7 +115,8 @@ public partial class HBRGameInstaller : GameInstallerBase
                     FileInfo fileInfo = new FileInfo(filePath);
                     return !fileInfo.Exists || fileInfo.Length != x.AssetSize ? 0 : fileInfo.Length;
                 }) ?? 0L,
-                GameInstallerKind.Preload => _preloadGameAssetManifest?.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
+                // TODO: Use this field to determine preload state.
+                // GameInstallerKind.Preload => _preloadGameAssetManifest?.GameAssets?.Sum(x => x.AssetSize) ?? 0L,
                 _ => throw new InvalidOperationException()
             };
         }, token);
