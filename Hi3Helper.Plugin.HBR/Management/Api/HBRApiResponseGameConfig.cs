@@ -8,11 +8,11 @@ namespace Hi3Helper.Plugin.HBR.Management.Api;
 public class HBRApiResponseGameConfig
 {
     [JsonPropertyName("game_lowest_version")]
-    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<GameVersion>))]
+    [JsonConverter(typeof(Utf8SpanParsableJsonConverter<GameVersion>))]
     public GameVersion PreviousVersion { get; set; }
 
     [JsonPropertyName("game_latest_version")]
-    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<GameVersion>))]
+    [JsonConverter(typeof(Utf8SpanParsableJsonConverter<GameVersion>))]
     public GameVersion CurrentVersion { get; set; }
 
     [JsonPropertyName("game_latest_file_path")]
