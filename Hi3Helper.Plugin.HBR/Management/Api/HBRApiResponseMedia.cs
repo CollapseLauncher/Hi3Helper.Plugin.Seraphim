@@ -10,6 +10,6 @@ public class HBRApiResponseMedia
     public string? BackgroundImageUrl { get; set; }
 
     [JsonPropertyName("launcher_background_img_crc64")]
-    [JsonConverter(typeof(NumberToBytesJsonConverter<ulong>))]
+    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<ulong>))]
     public byte[]? BackgroundImageChecksum { get; set; }
 }

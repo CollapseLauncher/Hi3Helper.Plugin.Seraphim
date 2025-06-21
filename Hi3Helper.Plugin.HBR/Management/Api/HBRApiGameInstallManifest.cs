@@ -20,8 +20,8 @@ public class HBRApiGameInstallManifest
 
 public class GameInstallAsset
 {
-    [JsonConverter(typeof(NumberToBytesJsonConverter<ulong>))]
     [JsonPropertyName("hash")]
+    [JsonConverter(typeof(Utf8SpanParsableToBytesJsonConverter<ulong>))]
     public byte[]? AssetHash { get; set; }
 
     [JsonPropertyName("path")]
