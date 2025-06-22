@@ -43,5 +43,5 @@ public partial class HBRPlugin : PluginBase
 
     public override string GetPluginAppIconUrl() => HBRIconData.HBRAppIconBase64;
 
-    public override string GetNotificationPosterUrl() => "https://heavenburnsred.yo-star.com/assets/kv-7e7a3729.jpg";
+    public override string GetNotificationPosterUrl() => HBRIconData.HBRAppPosterBase64;
 }
