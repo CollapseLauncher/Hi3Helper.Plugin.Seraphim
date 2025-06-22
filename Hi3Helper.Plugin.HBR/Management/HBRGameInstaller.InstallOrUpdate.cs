@@ -119,10 +119,8 @@ public partial class HBRGameInstaller
                     new RetryableCopyToStreamTaskOptions
                     {
                         IsDisposeTargetStream = true,
-                        MaxBufferSize = 4 << 10,
-                        MaxRetryCount = 5,
-                        MaxTimeoutSeconds = 5d,
-                        RetryDelaySeconds = 0d
+                        MaxBufferSize = 8 << 10,
+                        RetryDelaySeconds = 1d
                     });
 
             // Start download task
