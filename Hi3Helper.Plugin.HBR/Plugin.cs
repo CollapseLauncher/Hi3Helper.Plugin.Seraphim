@@ -1,5 +1,6 @@
 ﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management.PresetConfig;
+using Hi3Helper.Plugin.Core.Update;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.PresetConfig;
 using System;
@@ -13,6 +14,7 @@ public partial class HBRPlugin : PluginBase
 {
     private static readonly IPluginPresetConfig[] PresetConfigInstances = [ new HBRGlobalPresetConfig() ];
     private static DateTime _pluginCreationDate = new(2025, 05, 04, 09, 15, 0, DateTimeKind.Utc);
+    private static IPluginSelfUpdate? _selfUpdaterInstance;
 
     public override string GetPluginName() => "Heaven Burns Red Plugin";
 
@@ -35,4 +37,6 @@ public partial class HBRPlugin : PluginBase
         // Return preset config at index (n)
         return PresetConfigInstances[index];
     }
+
+    public override IPluginSelfUpdate GetPluginSelfUpdater() => _selfUpdaterInstance ??= new HBRPluginSelfUpdate();
 }
