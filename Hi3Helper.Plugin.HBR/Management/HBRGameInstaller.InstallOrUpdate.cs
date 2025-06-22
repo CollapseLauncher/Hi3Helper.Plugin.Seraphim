@@ -76,10 +76,13 @@ public partial class HBRGameInstaller
             }
 #endif
 
-            await using FileStream fileStream = fileInfo.Open(
-                isDownloadThroughMode ? FileMode.Create : FileMode.OpenOrCreate,
-                isDownloadThroughMode ? FileAccess.Write : FileAccess.ReadWrite,
-                isDownloadThroughMode ? FileShare.Write : FileShare.ReadWrite);
+            await using FileStream fileStream = fileInfo.Open(new FileStreamOptions
+            {
+                Mode = isDownloadThroughMode ? FileMode.Create : FileMode.OpenOrCreate,
+                Access = isDownloadThroughMode ? FileAccess.Write : FileAccess.ReadWrite,
+                Share = isDownloadThroughMode ? FileShare.Write : FileShare.ReadWrite,
+                Options = FileOptions.SequentialScan
+            });
             Interlocked.Increment(ref installProgress.DownloadedCount);
             progressDelegate?.Invoke(in installProgress);
             progressStateDelegate?.Invoke(InstallProgressState.Download);
