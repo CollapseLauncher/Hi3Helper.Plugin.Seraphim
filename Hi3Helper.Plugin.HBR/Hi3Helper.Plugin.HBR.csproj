@@ -19,6 +19,7 @@
     <Authors>$(Company). neon-nyan, Cry0, bagusnl, shatyuka, gablm.</Authors>
     <Copyright>Copyright 2022-2025 $(Company)</Copyright>
     <Version>0.7.0</Version>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

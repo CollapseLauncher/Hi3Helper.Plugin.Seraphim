@@ -3,6 +3,7 @@ using Hi3Helper.Plugin.Core.Management.PresetConfig;
 using Hi3Helper.Plugin.Core.Update;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.PresetConfig;
+using Hi3Helper.Plugin.HBR.Utility;
 using System;
 using System.Runtime.InteropServices.Marshalling;
 
@@ -39,4 +40,8 @@ public partial class HBRPlugin : PluginBase
     }
 
     public override IPluginSelfUpdate GetPluginSelfUpdater() => _selfUpdaterInstance ??= new HBRPluginSelfUpdate();
+
+    public override string GetPluginAppIconUrl() => HBRIconData.HBRAppIconBase64;
+
+    public override string GetNotificationPosterUrl() => "https://heavenburnsred.yo-star.com/assets/kv-7e7a3729.jpg";
 }
