@@ -185,7 +185,7 @@ internal partial class HBRGameManager : GameManagerBase
         }
 
         // Retrieve Game Config Reference API
-        string gameConfigRefUrl = gameConfigUrl + $"/json?version={ApiGameConfigResponse.ResponseData.CurrentVersion}&file_path={GameResourceBasisPath}";
+        string gameConfigRefUrl = gameConfigUrl + $"/json?version={ApiGameConfigResponse.ResponseData.CurrentVersion.ToString("N")}&file_path={GameResourceBasisPath}";
 
         using HttpResponseMessage configRefMessage = await ApiResponseHttpClient.GetAsync(gameConfigRefUrl, HttpCompletionOption.ResponseHeadersRead, token);
         configRefMessage.EnsureSuccessStatusCode();
