@@ -19,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
+// ReSharper disable StringLiteralTypo
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
@@ -301,14 +302,10 @@ internal partial class HBRGameManager : GameManagerBase
         RegistryKey?       launcherKey = wow6432RootKey?.OpenSubKey(CurrentGameLauncherUninstKey);
 
 #if DEBUG
-        if (launcherKey == null)
-        {
-            SharedStatic.InstanceLogger.LogTrace("Cannot find registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
-        }
-        else
-        {
-            SharedStatic.InstanceLogger.LogTrace("Found registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
-        }
+        SharedStatic.InstanceLogger.LogTrace(
+            launcherKey == null
+                ? "Cannot find registry key: {Key} from parent path: {Parent}"
+                : "Found registry key: {Key} from parent path: {Parent}", CurrentGameLauncherUninstKey, Wow6432Node);
 #endif
 
         return launcherKey;

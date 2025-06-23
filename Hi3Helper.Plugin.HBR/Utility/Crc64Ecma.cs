@@ -2,6 +2,7 @@
 using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+// ReSharper disable UnusedMember.Global
 
 namespace Hi3Helper.Plugin.HBR.Utility;
 

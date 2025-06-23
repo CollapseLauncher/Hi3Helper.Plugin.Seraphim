@@ -50,16 +50,6 @@ public class HBRGameManifest
     [JsonPropertyName("files")]
     public List<HBRGameManifestEntry>? ManifestEntries { get; set; }
 
-    public HBRGameManifest AsManifest(string gameBasis, string gameTag, string gameVersion)
-        => new()
-        {
-            GamePackageBasis = gameBasis,
-            GameTag          = gameTag,
-            GameVersion      = gameVersion,
-            ParentDir        = null,
-            ManifestEntries  = ManifestEntries
-        };
-
     [JsonPropertyName("vc")]
     public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(GameTag, $"{GameVersion}", GamePackageBasis);
 }
