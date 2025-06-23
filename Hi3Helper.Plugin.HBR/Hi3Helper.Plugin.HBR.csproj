@@ -26,4 +26,8 @@
     <ProjectReference Include="..\Hi3Helper.Plugin.Core\Hi3Helper.Plugin.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" Version="9.0.6" />
+  </ItemGroup>
+
 </Project>
