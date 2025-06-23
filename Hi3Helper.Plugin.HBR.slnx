@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="Hi3Helper.Plugin.Core/Hi3Helper.Plugin.Core.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Hi3Helper.Plugin.Core/PluginTest/PluginTest.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Hi3Helper.Plugin.HBR/Hi3Helper.Plugin.HBR.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Indexer/Indexer.csproj">
+    <Platform Project="x64" />
+  </Project>
+</Solution>
