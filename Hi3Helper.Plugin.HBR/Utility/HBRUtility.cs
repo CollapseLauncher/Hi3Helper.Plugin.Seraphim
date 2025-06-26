@@ -45,9 +45,9 @@ internal static class HBRUtility
     internal static HttpClient CreateApiHttpClient(string? gameTag = null, bool isUseAuthToken = true, bool useCompression = true, string? authSalt1 = "", string? authSalt2 = "")
         => CreateApiHttpClientBuilder(gameTag, isUseAuthToken, useCompression, authSalt1, authSalt2).Create();
 
-    internal static PluginHttpClientBuilder<SocketsHttpHandler> CreateApiHttpClientBuilder(string? gameTag = null, bool isUseAuthToken = true, bool useCompression = true, string? authSalt1 = "", string? authSalt2 = "")
+    internal static PluginHttpClientBuilder CreateApiHttpClientBuilder(string? gameTag = null, bool isUseAuthToken = true, bool useCompression = true, string? authSalt1 = "", string? authSalt2 = "")
     {
-        PluginHttpClientBuilder<SocketsHttpHandler> builder = new PluginHttpClientBuilder()
+        PluginHttpClientBuilder builder = new PluginHttpClientBuilder()
             .SetUserAgent($"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) {gameTag}_Gamelauncher/1.4.1 Chrome/108.0.5359.62 Electron/22.0.0 Safari/537.36");
 
         // ReSharper disable once ConvertIfStatementToSwitchStatement

@@ -55,7 +55,7 @@ public partial class HBRGameInstaller : GameInstallerBase
 
     internal HBRGameInstaller(IGameManager? gameManager) : base(gameManager)
     {
-        _downloadHttpClient = new PluginHttpClientBuilder<SocketsHttpHandler>()
+        _downloadHttpClient = new PluginHttpClientBuilder()
             .AllowUntrustedCert()
             .AllowCookies()
             .SetAllowedDecompression()
