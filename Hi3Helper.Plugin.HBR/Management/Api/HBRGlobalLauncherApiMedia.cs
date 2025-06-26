@@ -2,16 +2,20 @@
 using Hi3Helper.Plugin.Core.Management.Api;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Utility;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if !USELIGHTWEIGHTJSONPARSER
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
+#endif
+
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
@@ -89,10 +93,14 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ApiResponseBaseUrl + "api/launcher/base/config", HttpCompletionOption.ResponseHeadersRead, token);
         message.EnsureSuccessStatusCode();
 
+#if USELIGHTWEIGHTJSONPARSER
+        await using Stream networkStream = await message.Content.ReadAsStreamAsync(token);
+        ApiResponse = await HBRApiResponse<HBRApiResponseMedia>.ParseFromAsync(networkStream, token: token);
+#else
         string jsonResponse = await message.Content.ReadAsStringAsync(token);
         SharedStatic.InstanceLogger.LogTrace("API Media response: {JsonResponse}", jsonResponse);
-
         ApiResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseMedia>>(jsonResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseMedia);
+#endif
         ApiResponse!.EnsureSuccessCode();
 
         return 0;

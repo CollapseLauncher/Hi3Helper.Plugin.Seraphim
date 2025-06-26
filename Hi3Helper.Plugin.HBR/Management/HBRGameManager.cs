@@ -163,10 +163,15 @@ internal partial class HBRGameManager : GameManagerBase
         using HttpResponseMessage configMessage = await ApiResponseHttpClient.GetAsync(gameConfigUrl, HttpCompletionOption.ResponseHeadersRead, token);
         configMessage.EnsureSuccessStatusCode();
 
+#if USELIGHTWEIGHTJSONPARSER
+        await using Stream networkStreamConfig = await configMessage.Content.ReadAsStreamAsync(token);
+        ApiGameConfigResponse = await HBRApiResponse<HBRApiResponseGameConfig>.ParseFromAsync(networkStreamConfig, token: token);
+#else
         string jsonConfigResponse = await configMessage.Content.ReadAsStringAsync(token);
         SharedStatic.InstanceLogger.LogTrace("API GameConfig response: {JsonResponse}", jsonConfigResponse);
-
         ApiGameConfigResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfig>>(jsonConfigResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfig);
+#endif
+
         ApiGameConfigResponse!.EnsureSuccessCode();
 
         if (ApiGameConfigResponse.ResponseData == null)
@@ -191,10 +196,15 @@ internal partial class HBRGameManager : GameManagerBase
         using HttpResponseMessage configRefMessage = await ApiResponseHttpClient.GetAsync(gameConfigRefUrl, HttpCompletionOption.ResponseHeadersRead, token);
         configRefMessage.EnsureSuccessStatusCode();
 
+#if USELIGHTWEIGHTJSONPARSER
+        await using Stream networkStreamConfigRef = await configRefMessage.Content.ReadAsStreamAsync(token);
+        ApiGameDownloadRefResponse = await HBRApiResponse<HBRApiResponseGameConfigRef>.ParseFromAsync(networkStreamConfigRef, token: token);
+#else
         string jsonConfigRefResponse = await configRefMessage.Content.ReadAsStringAsync(token);
         SharedStatic.InstanceLogger.LogTrace("API GameConfigRef response: {JsonResponse}", jsonConfigRefResponse);
-
         ApiGameDownloadRefResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseGameConfigRef>>(jsonConfigRefResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseGameConfigRef);
+#endif
+
         ApiGameDownloadRefResponse?.EnsureSuccessCode();
 
         if (ApiGameDownloadRefResponse?.ResponseData == null)

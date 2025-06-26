@@ -25,12 +25,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if !USELIGHTWEIGHTJSONPARSER
+using System.Net.Http.Json;
+#endif
 
 namespace Hi3Helper.Plugin.HBR.Management;
 
@@ -259,7 +262,12 @@ public partial class HBRGameInstaller : GameInstallerBase
                 message.StatusCode);
         }
 
+#if USELIGHTWEIGHTJSONPARSER
+        await using Stream networkStream = await message.Content.ReadAsStreamAsync(token);
+        _currentGameAssetManifest = await HBRApiGameInstallManifest.ParseFromAsync(networkStream, token: token);
+#else
         _currentGameAssetManifest = await message.Content.ReadFromJsonAsync(HBRApiGameInstallManifestContext.Default.HBRApiGameInstallManifest, token);
+#endif
 
         // TODO: Implement preload manifest load mechanism.
 
@@ -297,7 +305,7 @@ public partial class HBRGameInstaller : GameInstallerBase
             {
                 GamePackageBasis = GameAssetBasisPath,
                 GameTag = manager.CurrentGameTag,
-                GameVersion = latestVersion.ToString(),
+                GameVersion = latestVersion,
                 ManifestEntries = _currentGameAssetManifest.GameAssets.Select(x => new HBRGameManifestEntry
                 {
                     AssetCrc64Hash = x.AssetHash,
@@ -308,20 +316,24 @@ public partial class HBRGameInstaller : GameInstallerBase
         }, token);
 
         await using FileStream stream = fileInfo.Create();
-        JavaScriptEncoder jsonEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         JsonWriterOptions jsonWriterOptionsIndented = new()
         {
             Indented = true,
             IndentCharacter = ' ',
             IndentSize = 2,
             NewLine = "\n",
-            Encoder = jsonEncoder
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         await using Utf8JsonWriter jsonWriterIndented = new(stream, jsonWriterOptionsIndented);
+
+#if USELIGHTWEIGHTJSONPARSER
+        await HBRGameManifest.SerializeToStreamAsync(manifest, stream, false, jsonWriterOptionsIndented, token);
+#else
         await Task.Factory.StartNew(() =>
             JsonSerializer.Serialize(jsonWriterIndented, manifest, HBRGameLauncherConfigContext.Default.HBRGameManifest),
             token);
+#endif
     }
 
     private bool IsCacheExpired()        => DateTimeOffset.UtcNow > _cacheExpiredUntil;

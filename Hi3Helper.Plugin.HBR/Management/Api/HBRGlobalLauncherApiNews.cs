@@ -8,10 +8,15 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
+
+#if USELIGHTWEIGHTJSONPARSER
+using System.IO;
+#else
+using System.Text.Json;
+#endif
 
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
@@ -41,10 +46,15 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
         using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ApiResponseBaseUrl + "api/launcher/social/media/resource", HttpCompletionOption.ResponseHeadersRead, token);
         message.EnsureSuccessStatusCode();
 
+#if USELIGHTWEIGHTJSONPARSER
+        await using Stream networkStream = await message.Content.ReadAsStreamAsync(token);
+        SocialApiResponse = await HBRApiResponse<HBRApiResponseSocial>.ParseFromAsync(networkStream, token: token);
+#else
         string jsonResponse = await message.Content.ReadAsStringAsync(token);
         SharedStatic.InstanceLogger.LogTrace("API Social Media and News response: {JsonResponse}", jsonResponse);
-
         SocialApiResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseSocial>>(jsonResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseSocial);
+#endif
+
         SocialApiResponse!.EnsureSuccessCode();
 
         // Initialize embedded Icon data
