@@ -5,6 +5,7 @@ using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.PresetConfig;
 using Hi3Helper.Plugin.HBR.Utility;
 using System;
+using System.Buffers.Text;
 using System.Runtime.InteropServices.Marshalling;
 
 // ReSharper disable InconsistentNaming
@@ -41,7 +42,9 @@ public partial class HBRPlugin : PluginBase
 
     public override IPluginSelfUpdate GetPluginSelfUpdater() => _selfUpdaterInstance ??= new HBRPluginSelfUpdate();
 
-    public override string GetPluginAppIconUrl() => HBRIconData.HBRAppIconBase64;
+    private string? _getPluginAppIconUrl;
+    public override string GetPluginAppIconUrl() => _getPluginAppIconUrl ??= Convert.ToBase64String(HBRIconData.HBRAppIconData);
 
-    public override string GetNotificationPosterUrl() => HBRIconData.HBRAppPosterBase64;
+    private string? _getNotificationPosterUrl;
+    public override string GetNotificationPosterUrl() => _getNotificationPosterUrl ??= Convert.ToBase64String(HBRIconData.HBRAppPosterData);
 }
