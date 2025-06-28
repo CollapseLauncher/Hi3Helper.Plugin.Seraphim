@@ -150,11 +150,15 @@ internal partial class HBRGameManager : GameManagerBase
             string executablePath3 = Path.Combine(CurrentGameInstallPath ?? string.Empty, Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset) + "_Data", "app.info");
             string executablePath4 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "UnityPlayer.dll");
             string executablePath5 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "GameAssembly.dll");
+            string executablePath6 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "game-launcher-config.json");
+            string executablePath7 = Path.Combine(CurrentGameInstallPath ?? string.Empty, "manifest.json");
             return File.Exists(executablePath1) &&
-                File.Exists(executablePath2) &&
-                File.Exists(executablePath3) &&
-                File.Exists(executablePath4) &&
-                File.Exists(executablePath5);
+                   File.Exists(executablePath2) &&
+                   File.Exists(executablePath3) &&
+                   File.Exists(executablePath4) &&
+                   File.Exists(executablePath5) &&
+                   File.Exists(executablePath6) &&
+                   File.Exists(executablePath7);
         }
     }
 
