@@ -1,7 +1,6 @@
 ﻿using Hi3Helper.Plugin.Core;
 using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Utility;
-using Hi3Helper.Plugin.Core.Utility.Json;
 using Hi3Helper.Plugin.HBR.Management.Api;
 using Hi3Helper.Plugin.HBR.Utility;
 using Microsoft.Extensions.Logging;
@@ -13,10 +12,15 @@ using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if !USELIGHTWEIGHTJSONPARSER
+using System.Text.Json.Nodes;
+using Hi3Helper.Plugin.Core.Utility.Json;
+#endif
+
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
 // ReSharper disable StringLiteralTypo
@@ -44,11 +48,16 @@ internal partial class HBRGameManager : GameManagerBase
 
     private HBRApiResponse<HBRApiResponseGameConfig>?    ApiGameConfigResponse         { get; set; }
     private HBRApiResponse<HBRApiResponseGameConfigRef>? ApiGameDownloadRefResponse    { get; set; }
-    private JsonObject                                   CurrentGameConfigNode         { get; set; } = new();
     private string                                       CurrentGameExecutableByPreset { get; }
     private string                                       CurrentAuthSalt1              { get; }
     private string                                       CurrentAuthSalt2              { get; }
     private string?                                      CurrentGameLauncherUninstKey  { get; }
+
+#if USELIGHTWEIGHTJSONPARSER
+    private HBRGameLauncherConfig CurrentGameConfig { get; set; } = HBRGameLauncherConfig.CreateEmpty();
+#else
+    private JsonObject CurrentGameConfigNode { get; set; } = new();
+#endif
 
     internal string CurrentGameTag { get; }
 
@@ -92,6 +101,7 @@ internal partial class HBRGameManager : GameManagerBase
 
     protected override GameVersion CurrentGameVersion
     {
+#if !USELIGHTWEIGHTJSONPARSER
         get
         {
             string? version = CurrentGameConfigNode.GetConfigValue<string?>("version");
@@ -108,6 +118,10 @@ internal partial class HBRGameManager : GameManagerBase
             return currentGameVersion;
         }
         set => CurrentGameConfigNode.SetConfigValue("version", value.ToString());
+#else
+        get => CurrentGameConfig.Version;
+        set => CurrentGameConfig.Version = value;
+#endif
     }
 
     protected override GameVersion ApiGameVersion
@@ -344,7 +358,11 @@ internal partial class HBRGameManager : GameManagerBase
         try
         {
             using FileStream fileStream = fileInfo.OpenRead();
+#if USELIGHTWEIGHTJSONPARSER
+            CurrentGameConfig = HBRGameLauncherConfig.ParseFrom(fileStream);
+#else
             CurrentGameConfigNode = JsonNode.Parse(fileStream) as JsonObject ?? new JsonObject();
+#endif
             SharedStatic.InstanceLogger.LogTrace("[HBRGameManager::LoadConfig] Loaded game-launcher-config.json from directory: {Dir}", CurrentGameInstallPath);
         }
         catch (Exception ex)
@@ -361,19 +379,26 @@ internal partial class HBRGameManager : GameManagerBase
             return;
         }
 
+#if !USELIGHTWEIGHTJSONPARSER
         CurrentGameConfigNode.SetConfigValueIfEmpty("tag", CurrentGameTag);
         CurrentGameConfigNode.SetConfigValueIfEmpty("name", ApiGameConfigResponse?.ResponseData?.GameExecutableFileName ?? Path.GetFileNameWithoutExtension(CurrentGameExecutableByPreset));
+#endif
         if (CurrentGameVersion == GameVersion.Empty)
         {
             SharedStatic.InstanceLogger.LogWarning("[HBRGameManager::SaveConfig] Current version returns 0.0.0! Overwrite the version to current provided version by API, {VersionApi}", ApiGameVersion);
             CurrentGameVersion = ApiGameVersion;
         }
 
+#if !USELIGHTWEIGHTJSONPARSER
         string vcSalt = HBRGameLauncherConfig
             .GetConfigSalt(CurrentGameConfigNode.GetConfigValue<string?>("tag"),
                            CurrentGameConfigNode.GetConfigValue<string?>("name"),
                            CurrentGameConfigNode.GetConfigValue<string?>("version"));
         CurrentGameConfigNode.SetConfigValue("vc", vcSalt);
+#else
+        CurrentGameConfig.Tag  = CurrentGameTag;
+        CurrentGameConfig.Name = ApiGameConfigResponse?.ResponseData?.GameExecutableFileName ?? CurrentGameExecutableByPreset;
+#endif
 
         string filePath = Path.Combine(CurrentGameInstallPath, "game-launcher-config.json");
         FileInfo fileInfo = new FileInfo(filePath);
@@ -385,16 +410,22 @@ internal partial class HBRGameManager : GameManagerBase
         }
 
         using FileStream fileStream = fileInfo.Create();
-        using Utf8JsonWriter writer = new Utf8JsonWriter(fileStream, new JsonWriterOptions
+        JsonWriterOptions options = new JsonWriterOptions
         {
             Indented = true,
             IndentSize = 2,
             IndentCharacter = ' ',
             NewLine = "\n",
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        });
+        };
+
+#if !USELIGHTWEIGHTJSONPARSER
+        using Utf8JsonWriter writer = new Utf8JsonWriter(fileStream, options);
 
         CurrentGameConfigNode.WriteTo(writer);
+#else
+        HBRGameLauncherConfig.SerializeToStreamAsync(CurrentGameConfig, fileStream, options: options).Wait();
+#endif
         SharedStatic.InstanceLogger.LogTrace("[HBRGameManager::SaveConfig] Saved game-launcher-config.json to directory: {Dir}", CurrentGameInstallPath);
     }
 }

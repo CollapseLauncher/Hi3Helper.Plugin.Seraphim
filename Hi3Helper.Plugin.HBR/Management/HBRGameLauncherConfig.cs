@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Buffers;
+using System.Linq;
+
 
 #if !USELIGHTWEIGHTJSONPARSER
 using Hi3Helper.Plugin.Core.Utility.Json.Converters;
@@ -31,7 +34,112 @@ public partial class HBRGameLauncherConfigContext : JsonSerializerContext;
 #endif
 
 public class HBRGameLauncherConfig
+#if USELIGHTWEIGHTJSONPARSER
+    : IJsonStreamSerializable<HBRGameLauncherConfig>,
+      IJsonStreamParsable<HBRGameLauncherConfig>,
+      IJsonElementParsable<HBRGameLauncherConfig>
+#endif
 {
+#if USELIGHTWEIGHTJSONPARSER
+    internal const string PropTag = "tag";
+    internal const string PropName = "name";
+    internal const string PropVersion = "version";
+    internal const string PropSalt = "vc";
+
+    private readonly JsonElement _rootElement;
+
+    private HBRGameLauncherConfig(JsonElement rootElement)
+    {
+        _rootElement = rootElement;
+    }
+
+    public string? Tag
+    {
+        get => field ??= _rootElement.GetString(PropTag);
+        set;
+    }
+
+    public string? Name
+    {
+        get => field ??= _rootElement.GetString(PropName);
+        set;
+    }
+
+    private GameVersion? _version;
+    public GameVersion Version
+    {
+        get => _version ??= _rootElement.GetValue<GameVersion>(PropVersion);
+        set => _version = value;
+    }
+
+    public string Salt => GetConfigSalt(Tag, Name, Version.ToString("n"));
+
+    public static HBRGameLauncherConfig CreateEmpty() => new(default);
+
+    public static HBRGameLauncherConfig ParseFrom(Stream stream, bool isDisposeStream = false, JsonDocumentOptions options = default)
+        => ParseFromAsync(stream, isDisposeStream, options).Result;
+
+    public static async Task<HBRGameLauncherConfig> ParseFromAsync(Stream stream, bool isDisposeStream = false, JsonDocumentOptions options = default, CancellationToken token = default)
+    {
+        try
+        {
+            JsonDocument document = await JsonDocument.ParseAsync(stream, options, token);
+            return ParseFrom(document.RootElement);
+        }
+        finally
+        {
+            if (isDisposeStream)
+            {
+                await stream.DisposeAsync();
+            }
+        }
+    }
+
+    public static HBRGameLauncherConfig ParseFrom(JsonElement element) => new(element);
+
+    public static async Task SerializeToStreamAsync(HBRGameLauncherConfig obj, Stream stream, bool isDisposeStream = false,
+        JsonWriterOptions options = default, CancellationToken token = default)
+    {
+        await using Utf8JsonWriter writer = new Utf8JsonWriter(stream, options);
+
+        try
+        {
+            SearchValues<string> searchValueKeys = SearchValues.Create([PropVersion, PropTag, PropName, PropSalt], StringComparison.OrdinalIgnoreCase);
+
+            writer.WriteStartObject();
+
+            if (obj.Version != GameVersion.Empty)
+                writer.WriteString(PropVersion, obj.Version.ToString("n"));
+
+            if (!string.IsNullOrEmpty(obj.Tag))
+                writer.WriteString(PropTag, obj.Tag);
+
+            if (!string.IsNullOrEmpty(obj.Name))
+                writer.WriteString(PropName, obj.Name);
+
+            // Write the rest
+            foreach (var element in obj._rootElement
+                .EnumerateObject()
+                .Where(element => !element.Name.AsSpan().ContainsAny(searchValueKeys) && element.Value.ValueKind != JsonValueKind.Null))
+            {
+                element.WriteTo(writer);
+            }
+
+            // Append salt
+            writer.WriteString(PropSalt, obj.Salt);
+
+            writer.WriteEndObject();
+        }
+        finally
+        {
+            if (isDisposeStream)
+            {
+                await stream.DisposeAsync();
+            }
+        }
+    }
+#endif
+
     internal static string GetConfigSalt(params ReadOnlySpan<string?> salts)
     {
         string configSalt = string.Join(';', salts);
