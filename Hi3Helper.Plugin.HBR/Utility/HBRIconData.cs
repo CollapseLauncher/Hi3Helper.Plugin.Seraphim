@@ -5,15 +5,21 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if !USELIGHTWEIGHTJSONPARSER
+using System.Text.Json.Serialization;
+#endif
+
 // ReSharper disable InconsistentNaming
 
 namespace Hi3Helper.Plugin.HBR.Utility;
 
+#if !USELIGHTWEIGHTJSONPARSER
 [JsonSerializable(typeof(Dictionary<string, string>))]
 internal partial class HBRIconDataMap : JsonSerializerContext;
+#endif
 
 public static partial class HBRIconData
 {
@@ -32,6 +38,24 @@ public static partial class HBRIconData
     public static byte[]? GetEmbeddedData(string key)
         => EmbeddedDataDictionary.GetValueOrDefault(key);
 
+#if USELIGHTWEIGHTJSONPARSER
+    private static async Task<Dictionary<string, string>> GetDictionaryAsync(Stream stream, CancellationToken token)
+    {
+        Dictionary<string, string> ret = [];
+
+        JsonDocument document = await JsonDocument.ParseAsync(stream, default, token);
+        foreach (var keyValue in document.RootElement.EnumerateObject())
+        {
+            string key = keyValue.Name;
+            string value = keyValue.Value.GetString() ?? "";
+
+            ret.Add(key, value);
+        }
+
+        return ret;
+    }
+#endif
+
     private static async Task LoadEmbeddedData(CancellationToken token)
     {
         await using Stream    base64EmbeddedData = GetEmbeddedStream();
@@ -47,8 +71,12 @@ public static partial class HBRIconData
             string entryName = entry.Name;
             if (entryName.EndsWith("Map.json", StringComparison.OrdinalIgnoreCase))
             {
-                _hbrIconDataMapDictionary = await JsonSerializer
-                    .DeserializeAsync(copyToStream, HBRIconDataMap.Default.DictionaryStringString, token);
+                _hbrIconDataMapDictionary =
+#if USELIGHTWEIGHTJSONPARSER
+                    await GetDictionaryAsync(copyToStream, token);
+#else
+                    await JsonSerializer.DeserializeAsync(copyToStream, HBRIconDataMap.Default.DictionaryStringString, token);
+#endif
                 if (_hbrIconDataMapDictionary == null)
                 {
                     throw new NullReferenceException("Cannot initialize MediaIconMap.json inside of the EmbeddedData");

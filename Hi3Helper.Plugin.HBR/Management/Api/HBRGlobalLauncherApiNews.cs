@@ -63,13 +63,13 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
         return !message.IsSuccessStatusCode ? (int)message.StatusCode : 0;
     }
 
-    public override bool GetNewsEntries(out nint handle, out int count, out bool isDisposable)
-        => InitializeEmpty(out handle, out count, out isDisposable);
+    public override void GetNewsEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
+        => InitializeEmpty(out handle, out count, out isDisposable, out isAllocated);
 
-    public override bool GetCarouselEntries(out nint handle, out int count, out bool isDisposable)
-        => InitializeEmpty(out handle, out count, out isDisposable);
+    public override void GetCarouselEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
+        => InitializeEmpty(out handle, out count, out isDisposable, out isAllocated);
 
-    public override bool GetSocialMediaEntries(out nint handle, out int count, out bool isDisposable)
+    public override void GetSocialMediaEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
     {
         try
         {
@@ -77,7 +77,8 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
                 SocialApiResponse.ResponseData.SocialMediaEntries.Count == 0)
             {
                 SharedStatic.InstanceLogger.LogTrace("[HBRGlobalLauncherApiNews::GetSocialMediaEntries] API provides no Social Media entries!");
-                return InitializeEmpty(out handle, out count, out isDisposable);
+                InitializeEmpty(out handle, out count, out isDisposable, out isAllocated);
+                return;
             }
 
             List<HBRApiResponseSocialResponse> validEntries = [..SocialApiResponse.ResponseData.SocialMediaEntries
@@ -118,22 +119,21 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
                 unmanagedEntry.WriteClickUrl(clickUrl);
             }
 
-            return true;
+            isAllocated = true;
         }
         catch (Exception ex)
         {
             SharedStatic.InstanceLogger.LogError(ex, "Failed to get social media entries");
-            return InitializeEmpty(out handle, out count, out isDisposable);
+            InitializeEmpty(out handle, out count, out isDisposable, out isAllocated);
         }
     }
 
-    private static bool InitializeEmpty(out nint handle, out int count, out bool isDisposable)
+    private static void InitializeEmpty(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
     {
         handle = nint.Zero;
         count = 0;
         isDisposable = false;
-
-        return false;
+        isAllocated = false;
     }
 
     public override void Dispose()

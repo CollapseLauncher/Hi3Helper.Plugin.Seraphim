@@ -41,7 +41,7 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
 
-    public override unsafe bool GetBackgroundEntries(out nint handle, out int count, out bool isDisposable)
+    public override unsafe void GetBackgroundEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
     {
         using (ThisInstanceLock.EnterScope())
         {
@@ -56,14 +56,15 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
                     isDisposable = false;
                     handle = nint.Zero;
                     count = 0;
-                    return false;
+                    isAllocated = false;
+                    return;
                 }
 
                 byte[]? fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
                 void* ptr = fileHashCrc == null ? null : (void*)Marshal.UnsafeAddrOfPinnedArrayElement(fileHashCrc, 0);
 
                 entry.Write(ApiResponse.ResponseData.BackgroundImageUrl, ptr == null ? Span<byte>.Empty : new Span<byte>(ptr, sizeof(ulong)));
-                return true;
+                isAllocated = true;
             }
             finally
             {
@@ -74,19 +75,19 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         }
     }
 
-    public override bool GetLogoOverlayEntries(out nint handle, out int count, out bool isDisposable)
+    public override void GetLogoOverlayEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
     {
         isDisposable = false;
         handle = nint.Zero;
         count = 0;
-        return false;
+        isAllocated = false;
     }
 
-    public override LauncherBackgroundFlag GetBackgroundFlag()
-        => LauncherBackgroundFlag.IsSourceFile | LauncherBackgroundFlag.TypeIsImage;
+    public override void GetBackgroundFlag(out LauncherBackgroundFlag result)
+        => result = LauncherBackgroundFlag.IsSourceFile | LauncherBackgroundFlag.TypeIsImage;
 
-    public override LauncherBackgroundFlag GetLogoFlag()
-        => LauncherBackgroundFlag.None;
+    public override void GetLogoFlag(out LauncherBackgroundFlag result)
+        => result = LauncherBackgroundFlag.None;
 
     protected override async Task<int> InitAsync(CancellationToken token)
     {

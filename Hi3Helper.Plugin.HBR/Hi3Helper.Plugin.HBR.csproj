@@ -20,6 +20,7 @@
     <Copyright>Copyright 2022-2025 $(Company)</Copyright>
     <Version>0.7.0</Version>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+    <DefineConstants>USELIGHTWEIGHTJSONPARSER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

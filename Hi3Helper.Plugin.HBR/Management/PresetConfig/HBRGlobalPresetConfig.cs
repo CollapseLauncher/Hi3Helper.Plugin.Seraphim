@@ -29,7 +29,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     private static readonly List<string> _supportedLanguages = ["Japanese", "English"];
 
     [field: AllowNull, MaybeNull]
-    public override string GameName => field ??= "Heaven Burns Red";
+    public override string? GameName => field ??= "Heaven Burns Red";
 
     [field: AllowNull, MaybeNull]
     public override string GameExecutableName => field ??= ExecutableName;

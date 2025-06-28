@@ -5,7 +5,6 @@ using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Management.PresetConfig;
 using Hi3Helper.Plugin.HBR.Utility;
 using System;
-using System.Buffers.Text;
 using System.Runtime.InteropServices.Marshalling;
 
 // ReSharper disable InconsistentNaming
@@ -18,33 +17,34 @@ public partial class HBRPlugin : PluginBase
     private static DateTime _pluginCreationDate = new(2025, 05, 04, 09, 15, 0, DateTimeKind.Utc);
     private static IPluginSelfUpdate? _selfUpdaterInstance;
 
-    public override string GetPluginName() => "Heaven Burns Red Plugin";
+    public override void GetPluginName(out string result) => result = "Heaven Burns Red Plugin";
 
-    public override string GetPluginDescription() => "A plugin for Heaven Burns Red on Collapse Launcher";
+    public override void GetPluginDescription(out string result) => result = "A plugin for Heaven Burns Red on Collapse Launcher";
 
-    public override string GetPluginAuthor() => "neon-nyan, Collapse Project Team";
+    public override void GetPluginAuthor(out string result) => result = "neon-nyan, Collapse Project Team";
 
-    public override unsafe DateTime* GetPluginCreationDate() => _pluginCreationDate.AsPointer();
+    public override unsafe void GetPluginCreationDate(out DateTime* result) => result = _pluginCreationDate.AsPointer();
 
-    public override int GetPresetConfigCount() => PresetConfigInstances.Length;
+    public override void GetPresetConfigCount(out int count) => count = PresetConfigInstances.Length;
 
-    public override IPluginPresetConfig GetPresetConfig(int index)
+    public override void GetPresetConfig(int index, out IPluginPresetConfig presetConfig)
     {
         // Avoid crash by returning null if index is out of bounds
         if (index < 0 || index >= PresetConfigInstances.Length)
         {
-            return null!;
+            presetConfig = null!;
+            return;
         }
 
         // Return preset config at index (n)
-        return PresetConfigInstances[index];
+        presetConfig = PresetConfigInstances[index];
     }
 
-    public override IPluginSelfUpdate GetPluginSelfUpdater() => _selfUpdaterInstance ??= new HBRPluginSelfUpdate();
+    public override void GetPluginSelfUpdater(out IPluginSelfUpdate selfUpdate) => selfUpdate = _selfUpdaterInstance ??= new HBRPluginSelfUpdate();
 
     private string? _getPluginAppIconUrl;
-    public override string GetPluginAppIconUrl() => _getPluginAppIconUrl ??= Convert.ToBase64String(HBRIconData.HBRAppIconData);
+    public override void GetPluginAppIconUrl(out string result) => result = _getPluginAppIconUrl ??= Convert.ToBase64String(HBRIconData.HBRAppIconData);
 
     private string? _getNotificationPosterUrl;
-    public override string GetNotificationPosterUrl() => _getNotificationPosterUrl ??= Convert.ToBase64String(HBRIconData.HBRAppPosterData);
+    public override void GetNotificationPosterUrl(out string result) => result = _getNotificationPosterUrl ??= Convert.ToBase64String(HBRIconData.HBRAppPosterData);
 }
