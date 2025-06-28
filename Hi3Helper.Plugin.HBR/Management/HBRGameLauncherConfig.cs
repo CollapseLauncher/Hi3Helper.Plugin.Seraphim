@@ -155,6 +155,7 @@ public class HBRGameLauncherConfig
             writer.WriteString(PropSalt, obj.Salt);
 
             writer.WriteEndObject();
+            await writer.FlushAsync(token).ConfigureAwait(false);
         }
         finally
         {
@@ -262,6 +263,7 @@ public class HBRGameManifest
 
             writer.WriteEndObject();
         }, token);
+        await writer.FlushAsync(token).ConfigureAwait(false);
 #endif
 }
 

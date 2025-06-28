@@ -112,6 +112,8 @@ public class Program
         writer.WriteEndArray();
         writer.WriteEndObject();
 
+        writer.Flush();
+
         Console.WriteLine(" Done!");
         return 0;
     }

@@ -325,11 +325,10 @@ public partial class HBRGameInstaller : GameInstallerBase
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        await using Utf8JsonWriter jsonWriterIndented = new(stream, jsonWriterOptionsIndented);
-
 #if USELIGHTWEIGHTJSONPARSER
         await HBRGameManifest.SerializeToStreamAsync(manifest, stream, false, jsonWriterOptionsIndented, token);
 #else
+        await using Utf8JsonWriter jsonWriterIndented = new(stream, jsonWriterOptionsIndented);
         await Task.Factory.StartNew(() =>
             JsonSerializer.Serialize(jsonWriterIndented, manifest, HBRGameLauncherConfigContext.Default.HBRGameManifest),
             token);
