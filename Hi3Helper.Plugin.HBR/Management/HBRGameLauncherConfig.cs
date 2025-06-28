@@ -131,14 +131,14 @@ public class HBRGameLauncherConfig
 
             writer.WriteStartObject();
 
-            if (obj.Version != GameVersion.Empty)
-                writer.WriteString(PropVersion, obj.Version.ToString("n"));
-
             if (!string.IsNullOrEmpty(obj.Tag))
                 writer.WriteString(PropTag, obj.Tag);
 
             if (!string.IsNullOrEmpty(obj.Name))
                 writer.WriteString(PropName, obj.Name);
+
+            if (obj.Version != GameVersion.Empty)
+                writer.WriteString(PropVersion, obj.Version.ToString("n"));
 
             if (obj._rootElement.HasValue)
             {
@@ -216,7 +216,7 @@ public class HBRGameManifest
 #if !USELIGHTWEIGHTJSONPARSER
     [JsonPropertyName("vc")]
 #endif
-    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(GameTag, $"{GameVersion}", GamePackageBasis);
+    public string ConfigSignature => HBRGameLauncherConfig.GetConfigSalt(GameTag, $"{GameVersion.ToString("n")}", GamePackageBasis);
 
 #if USELIGHTWEIGHTJSONPARSER
     public static async Task SerializeToStreamAsync(HBRGameManifest obj, Stream stream, bool isDisposeStream = false, JsonWriterOptions options = default,
@@ -236,34 +236,34 @@ public class HBRGameManifest
         }
     }
 
-    public static Task SerializeToWriterAsync(HBRGameManifest obj, Utf8JsonWriter writer, CancellationToken token = default)
-        => Task.Factory.StartNew(async () =>
+    public static async Task SerializeToWriterAsync(HBRGameManifest obj, Utf8JsonWriter writer, CancellationToken token = default)
+    {
+        writer.WriteStartObject();
+
+        if (obj.GameTag != null)
+            writer.WriteString("name"u8, obj.GameTag);
+
+        if (obj.GameVersion != GameVersion.Empty)
+            writer.WriteString("version"u8, obj.GameVersion.ToString("n"));
+
+        if (obj.GamePackageBasis != null)
+            writer.WriteString("basis"u8, obj.GamePackageBasis);
+
+        writer.WriteString("vc"u8, obj.ConfigSignature);
+
+        if (obj.ManifestEntries is { Count: > 0 })
         {
-            writer.WriteStartObject();
-
-            if (obj.GamePackageBasis != null)
-                writer.WriteString("basis"u8, obj.GamePackageBasis);
-
-            if (obj.GameTag != null)
-                writer.WriteString("tag"u8, obj.GameTag);
-
-            if (obj.GameVersion != GameVersion.Empty)
-                writer.WriteString("version"u8, obj.GameVersion.ToString("n"));
-
-            if (obj.ManifestEntries is { Count: > 0 })
+            writer.WriteStartArray("files"u8);
+            foreach (HBRGameManifestEntry entry in obj.ManifestEntries)
             {
-                writer.WriteStartArray("files"u8);
-                foreach (HBRGameManifestEntry entry in obj.ManifestEntries)
-                {
-                    await HBRGameManifestEntry.SerializeToWriterAsync(entry, writer, token).ConfigureAwait(false);
-                }
+                await HBRGameManifestEntry.SerializeToWriterAsync(entry, writer, token).ConfigureAwait(false);
             }
+            writer.WriteEndArray();
+        }
 
-            writer.WriteString("vc"u8, obj.ConfigSignature);
-
-            writer.WriteEndObject();
-        }, token);
+        writer.WriteEndObject();
         await writer.FlushAsync(token).ConfigureAwait(false);
+    }
 #endif
 }
 
@@ -305,8 +305,8 @@ public class HBRGameManifestEntry
         {
             writer.WriteStartObject();
 
-            writer.WriteString("hash"u8, obj.AssetCrc64HashAsString);
             writer.WriteString("path"u8, obj.AssetPath);
+            writer.WriteString("hash"u8, obj.AssetCrc64HashAsString);
             writer.WriteString("size"u8, obj.AssetSize.ToString());
             writer.WriteString("vc"u8, obj.ConfigSignature);
 
