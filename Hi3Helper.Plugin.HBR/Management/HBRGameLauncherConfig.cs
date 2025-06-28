@@ -46,35 +46,58 @@ public class HBRGameLauncherConfig
     internal const string PropVersion = "version";
     internal const string PropSalt = "vc";
 
-    private readonly JsonElement _rootElement;
+    private readonly JsonElement? _rootElement;
 
-    private HBRGameLauncherConfig(JsonElement rootElement)
+    private HBRGameLauncherConfig(JsonElement? rootElement)
     {
         _rootElement = rootElement;
     }
 
     public string? Tag
     {
-        get => field ??= _rootElement.GetString(PropTag);
+        get
+        {
+            if (field != null)
+            {
+                return field;
+            }
+
+            return _rootElement?.TryGetStringNonNullOrEmpty(PropTag, out string value) ?? false ? value : null;
+        }
         set;
     }
 
     public string? Name
     {
-        get => field ??= _rootElement.GetString(PropName);
+        get
+        {
+            if (field != null)
+            {
+                return field;
+            }
+
+            return _rootElement?.TryGetStringNonNullOrEmpty(PropName, out string value) ?? false ? value : null;
+        }
         set;
     }
 
-    private GameVersion? _version;
     public GameVersion Version
     {
-        get => _version ??= _rootElement.GetValue<GameVersion>(PropVersion);
-        set => _version = value;
+        get
+        {
+            if (field != GameVersion.Empty || (_rootElement?.TryGetValue(PropVersion, out field) ?? false))
+            {
+                return field;
+            }
+
+            return GameVersion.Empty;
+        }
+        set;
     }
 
     public string Salt => GetConfigSalt(Tag, Name, Version.ToString("n"));
 
-    public static HBRGameLauncherConfig CreateEmpty() => new(default);
+    public static HBRGameLauncherConfig CreateEmpty() => new(null);
 
     public static HBRGameLauncherConfig ParseFrom(Stream stream, bool isDisposeStream = false, JsonDocumentOptions options = default)
         => ParseFromAsync(stream, isDisposeStream, options).Result;
@@ -117,12 +140,15 @@ public class HBRGameLauncherConfig
             if (!string.IsNullOrEmpty(obj.Name))
                 writer.WriteString(PropName, obj.Name);
 
-            // Write the rest
-            foreach (var element in obj._rootElement
-                .EnumerateObject()
-                .Where(element => !element.Name.AsSpan().ContainsAny(searchValueKeys) && element.Value.ValueKind != JsonValueKind.Null))
+            if (obj._rootElement.HasValue)
             {
-                element.WriteTo(writer);
+                // Write the rest
+                foreach (var element in obj._rootElement.Value
+                    .EnumerateObject()
+                    .Where(element => !element.Name.AsSpan().ContainsAny(searchValueKeys) && element.Value.ValueKind != JsonValueKind.Null))
+                {
+                    element.WriteTo(writer);
+                }
             }
 
             // Append salt
