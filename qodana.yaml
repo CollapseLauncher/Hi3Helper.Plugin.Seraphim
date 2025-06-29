@@ -1,6 +1,6 @@
 version: "1.0"
-linter: jetbrains/qodana-cdnet:2025.1-eap
-bootstrap: git submodule sync --recursive && git -c protocol.version=2 submodule update --init --force --recursive && dotnet publish Hi3Helper.Plugin.HBR /p:Configuration=Release /p:PublishProfile=ReleasePublish-O1
+linter: jetbrains/qodana-cdnet
+# bootstrap: git submodule sync --recursive && git -c protocol.version=2 submodule update --init --force --recursive && dotnet publish Hi3Helper.Plugin.HBR /p:Configuration=Release /p:PublishProfile=ReleasePublish-O1
 dotnet:
   solution: Hi3Helper.Plugin.HBR.sln
 include:
