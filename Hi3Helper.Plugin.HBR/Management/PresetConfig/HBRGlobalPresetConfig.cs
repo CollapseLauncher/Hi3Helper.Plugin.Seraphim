@@ -1,8 +1,9 @@
-﻿using System;
-using Hi3Helper.Plugin.Core.Management;
+﻿using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Management.Api;
 using Hi3Helper.Plugin.Core.Management.PresetConfig;
+using Hi3Helper.Plugin.Core.Utility.Windows;
 using Hi3Helper.Plugin.HBR.Management.Api;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -35,7 +36,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
 
     [field: AllowNull, MaybeNull]
     public override string GameAppDataPath => field ??= Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        PInvoke.GetFolderPath(Environment.SpecialFolder.UserProfile),
         "AppData",
         "LocalLow",
         // ReSharper disable once StringLiteralTypo
