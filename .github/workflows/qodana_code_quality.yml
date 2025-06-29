@@ -27,7 +27,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           dotnet-quality: ${{ env.DOTNET_QUALITY }}
-          cache: true
           
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@latest
