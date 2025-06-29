@@ -10,7 +10,7 @@
     <DebugType>embedded</DebugType>
     <Deterministic>true</Deterministic>
     <LangVersion>preview</LangVersion>
-    <AssemblyName>Hi3Helper.Plugin.HBR</AssemblyName>
+    <AssemblyName>main</AssemblyName>
     <ProductName>Heaven Burns Red Plugin</ProductName>
     <Product>Collapse</Product>
     <Description>This library is a plugin for adding support for Game: Heaven Burns Red on Collapse Launcher</Description>
