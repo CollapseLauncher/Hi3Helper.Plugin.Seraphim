@@ -7,7 +7,7 @@ on:
       - main # The 'main' branch
 
 jobs:
-  qodana:
+  qodana-and-build:
     runs-on: windows-latest
     permissions:
       contents: write
@@ -43,3 +43,11 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: Hi3Helper.Plugin.HBR_${{ github.sha }}
+          path: .\Hi3Helper.Plugin.HBR\publish\Release\
+          compression-level: 9
