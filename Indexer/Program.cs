@@ -1,10 +1,17 @@
-﻿using System;
+﻿using Hi3Helper.Plugin.Core;
+using Hi3Helper.Plugin.Core.ABI;
+using Hi3Helper.Plugin.Core.Management;
+using Hi3Helper.Plugin.Core.Update;
+using Hi3Helper.Plugin.Core.Utility;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -25,9 +32,7 @@ public class SelfUpdateAssetInfo
 public class Program
 {
     private static readonly string[]             AllowedPluginExt             = [".dll", ".exe", ".so", ".dylib"];
-#if !BFLAT
     private static readonly SearchValues<string> AllowedPluginExtSearchValues = SearchValues.Create(AllowedPluginExt, StringComparison.OrdinalIgnoreCase);
-#endif
 
     public static int Main(params string[] args)
     {
@@ -46,15 +51,15 @@ public class Program
                 return 2;
             }
 
-            FileInfo? fileInfo = FindPluginLibraryAndGetAssets(path, out List<SelfUpdateAssetInfo> assetInfo, out string? mainLibraryName);
-            if (fileInfo == null || string.IsNullOrEmpty(mainLibraryName))
+            FileInfo? fileInfo = FindPluginLibraryAndGetAssets(path, out List<SelfUpdateAssetInfo> assetInfo, out SelfUpdateReferenceInfo? reference);
+            if (fileInfo == null || reference == null || string.IsNullOrEmpty(reference.MainLibraryName))
             {
                 Console.Error.WriteLine("No valid plugin library was found.");
                 return 1;
             }
 
             string referenceFilePath = Path.Combine(path, "manifest.json");
-            return WriteToJson(fileInfo, mainLibraryName, referenceFilePath, assetInfo);
+            return WriteToJson(reference, referenceFilePath, assetInfo);
         }
         catch (Exception ex)
         {
@@ -63,20 +68,15 @@ public class Program
         }
     }
 
-    private static int WriteToJson(FileInfo fileInfo, string mainLibraryName, string referenceFilePath, List<SelfUpdateAssetInfo> assetInfo)
+    private static int WriteToJson(SelfUpdateReferenceInfo reference, string referenceFilePath, List<SelfUpdateAssetInfo> assetInfo)
     {
-        DateTimeOffset creationDate = fileInfo.CreationTime;
-        FileVersionInfo pluginFileVersionInfo = FileVersionInfo.GetVersionInfo(fileInfo.FullName);
-        if (!Version.TryParse(pluginFileVersionInfo.FileVersion, out Version? pluginFileVersion))
-        {
-            Console.Error.WriteLine($"Cannot parse plugin's {fileInfo.Name} version: {pluginFileVersionInfo.FileVersion}");
-            return 3;
-        }
+        DateTimeOffset creationDate = reference.PluginCreationDate.ToOffset(reference.PluginCreationDate.Offset);
 
         Console.WriteLine("Plugin has been found!");
-        Console.WriteLine($"  Main Library Path Name: {mainLibraryName}");
+        Console.WriteLine($"  Main Library Path Name: {reference.MainLibraryName}");
+        Console.WriteLine($"  Main Plugin Name: {reference.MainPluginName}");
         Console.WriteLine($"  Creation Date: {creationDate}");
-        Console.WriteLine($"  Version: {pluginFileVersion}");
+        Console.WriteLine($"  Version: {reference.PluginVersion}");
         Console.Write("Writing metadata info...");
 
         using FileStream referenceFileStream = File.Create(referenceFilePath);
@@ -84,19 +84,21 @@ public class Program
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             Indented = true,
-#if !BFLAT
             IndentCharacter = ' ',
             IndentSize = 2,
             NewLine = "\n"
-#endif
         });
 
         writer.WriteStartObject();
 
-        writer.WriteString("MainLibraryName", mainLibraryName);
-        writer.WriteString("PluginVersion", pluginFileVersion.ToString());
-        writer.WriteString("PluginCreationDate", creationDate);
-        writer.WriteString("ManifestDate", DateTimeOffset.Now);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainLibraryName), reference.MainLibraryName);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginName), reference.MainPluginName);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginAuthor), reference.MainPluginAuthor);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginDescription), reference.MainPluginDescription);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginStandardVersion), reference.PluginStandardVersion.ToString());
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginVersion), reference.PluginVersion.ToString());
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginCreationDate), creationDate);
+        writer.WriteString(nameof(SelfUpdateReferenceInfo.ManifestDate), DateTimeOffset.Now);
 
         writer.WriteStartArray("Assets");
         foreach (var asset in assetInfo)
@@ -118,19 +120,19 @@ public class Program
         return 0;
     }
 
-    private static FileInfo? FindPluginLibraryAndGetAssets(string dirPath, out List<SelfUpdateAssetInfo> fileList, out string? mainLibraryName)
+    private static FileInfo? FindPluginLibraryAndGetAssets(string dirPath, out List<SelfUpdateAssetInfo> fileList, out SelfUpdateReferenceInfo? referenceInfo)
     {
         DirectoryInfo directoryInfo = new DirectoryInfo(dirPath);
         List<SelfUpdateAssetInfo> fileListRef = [];
         fileList = fileListRef;
+        referenceInfo = null;
 
         FileInfo? mainLibraryFileInfo = null;
-        mainLibraryName = null;
+        SelfUpdateReferenceInfo? referenceInfoResult = null;
 
-        string? outMainLibraryName = null;
         Parallel.ForEach(directoryInfo.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.Equals("manifest.json", StringComparison.OrdinalIgnoreCase)), Impl);
+        referenceInfo = referenceInfoResult;
 
-        mainLibraryName = outMainLibraryName;
         return mainLibraryFileInfo;
 
         void Impl(FileInfo fileInfo)
@@ -138,10 +140,10 @@ public class Program
             string fileName = fileInfo.FullName.AsSpan(directoryInfo.FullName.Length).TrimStart("\\/").ToString();
 
             if (mainLibraryFileInfo == null &&
-                IsPluginLibrary(fileInfo))
+                IsPluginLibrary(fileInfo, fileName, out SelfUpdateReferenceInfo? referenceInfoInner))
             {
                 Interlocked.Exchange(ref mainLibraryFileInfo, fileInfo);
-                Interlocked.Exchange(ref outMainLibraryName, fileName);
+                Interlocked.Exchange(ref referenceInfoResult, referenceInfoInner);
             }
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(4 << 10);
@@ -178,26 +180,91 @@ public class Program
         }
     }
 
-    private static bool IsPluginLibrary(FileInfo fileInfo)
+    private unsafe delegate void* GetPlugin();
+    private unsafe delegate GameVersion* GetVersion();
+
+    private static unsafe bool IsPluginLibrary(FileInfo fileInfo, string fileName, [NotNullWhen(true)] out SelfUpdateReferenceInfo? referenceInfo)
     {
         nint handle = nint.Zero;
+        referenceInfo = null;
 
-#if !BFLAT
         if (fileInfo.Name.IndexOfAny(AllowedPluginExtSearchValues) < 0)
         {
             return false;
         }
-#else
-        if (!AllowedPluginExt.Any(x => fileInfo.Name.EndsWith(x, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-#endif
+        char* getPluginNameP = (char*)Utf16StringMarshaller.ConvertToUnmanaged("GetPlugin");
+        char* getPluginVersionNameP = (char*)Utf16StringMarshaller.ConvertToUnmanaged("GetPluginVersion");
+        char* getGetPluginStandardVersionNameP = (char*)Utf16StringMarshaller.ConvertToUnmanaged("GetPluginStandardVersion");
 
         try
         {
-            return NativeLibrary.TryLoad(fileInfo.FullName, out handle) &&
-                   NativeLibrary.TryGetExport(handle, "TryGetApiExport", out _);
+            if (!NativeLibrary.TryLoad(fileInfo.FullName, out handle) ||
+                !NativeLibrary.TryGetExport(handle, "TryGetApiExport", out nint exportAddress) ||
+                exportAddress == nint.Zero)
+            {
+                return false;
+            }
+
+            delegate* unmanaged[Cdecl]<char*, void**, int> tryGetApiExportCallback = (delegate* unmanaged[Cdecl]<char*, void**, int>)exportAddress;
+
+            nint getPluginP = nint.Zero;
+            int tryResult = tryGetApiExportCallback(getPluginNameP, (void**)&getPluginP);
+
+            if (tryResult != 0 ||
+                getPluginP == nint.Zero)
+            {
+                return false;
+            }
+
+            void* pluginP = Marshal.GetDelegateForFunctionPointer<GetPlugin>(getPluginP)();
+            if (pluginP == null)
+            {
+                return false;
+            }
+
+            IPlugin? plugin = ComInterfaceMarshaller<IPlugin>.ConvertToManaged(pluginP);
+            if (plugin == null)
+            {
+                return false;
+            }
+
+            tryResult = tryGetApiExportCallback(getPluginVersionNameP, (void**)&getPluginP);
+
+            if (tryResult != 0 ||
+                getPluginP == nint.Zero)
+            {
+                return false;
+            }
+
+            GameVersion pluginVersion = *Marshal.GetDelegateForFunctionPointer<GetVersion>(getPluginP)();
+
+            tryResult = tryGetApiExportCallback(getGetPluginStandardVersionNameP, (void**)&getPluginP);
+
+            if (tryResult != 0 ||
+                getPluginP == nint.Zero)
+            {
+                return false;
+            }
+
+            GameVersion pluginStandardVersion = *Marshal.GetDelegateForFunctionPointer<GetVersion>(getPluginP)();
+
+            plugin.GetPluginName(out string? pluginName);
+            plugin.GetPluginAuthor(out string? pluginAuthor);
+            plugin.GetPluginDescription(out string? pluginDescription);
+            plugin.GetPluginCreationDate(out DateTime* pluginCreationDate);
+
+            referenceInfo = new SelfUpdateReferenceInfo
+            {
+                Assets = [],
+                MainPluginName = pluginName,
+                MainPluginAuthor = pluginAuthor,
+                MainPluginDescription = pluginDescription,
+                PluginCreationDate = *pluginCreationDate,
+                PluginVersion = pluginVersion,
+                PluginStandardVersion = pluginStandardVersion,
+                MainLibraryName = fileName
+            };
+            return true;
         }
         finally
         {

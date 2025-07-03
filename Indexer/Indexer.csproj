@@ -22,4 +22,8 @@
         <Version>1.0.0</Version>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Hi3Helper.Plugin.Core\Hi3Helper.Plugin.Core.csproj" />
+    </ItemGroup>
+
 </Project>
