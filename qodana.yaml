@@ -1,7 +1,7 @@
 version: "1.0"
 ide: QDNET
 #linter: jetbrains/qodana-cdnet
-bootstrap: git submodule sync --recursive && git -c protocol.version=2 submodule update --init --force --recursive && .\CompileAOTAndShip.bat 1
+bootstrap: git submodule sync --recursive && git -c protocol.version=2 submodule update --init --force --recursive && .\CompileAOTAndShip.bat 4
 dotnet:
   solution: Hi3Helper.Plugin.HBR.sln
 include:
