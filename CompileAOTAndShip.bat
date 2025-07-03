@@ -1,5 +1,6 @@
 @echo off
 set _7zFast="%programfiles%\7-Zip-Zstandard\7z.exe"
+set _7zBuilt="%~dp0Tools\7z.exe"
 set _7z="%programfiles%\7-Zip\7z.exe"
 set _pluginName=Hi3Helper.Plugin.HBR
 
@@ -12,11 +13,19 @@ set indexerToolPath=%indexerPublishPath%\Indexer.exe
 set thread=%NUMBER_OF_PROCESSORS%
 set args1=%1
 
+%~d0
+cd %currentPath%
+
 :SevenZipCheck
 if exist %_7zFast% (
 	set sevenzip=%_7zFast%
+    echo Using 7-zip-Fast from Program Files!: %sevenzip%
 ) else if exist %_7z% (
 	set sevenzip=%_7z%
+    echo Using 7-zip from Program Files!: %sevenzip%
+) else if exist %_7zBuilt% (
+	set sevenzip=%_7zBuilt%
+    echo Using 7-zip included inside of the repo!
 ) else (
 	cls
 	echo 7-Zip ^(x64^) does not exist!
