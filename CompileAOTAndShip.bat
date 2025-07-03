@@ -38,12 +38,12 @@ if "%speedChoice%" == "" (
 )
 
 if "%speedChoice%" == "1" (
-  echo Compiling with Speed preferred optimization
+  echo Compiling with Size preferred optimization
   set publishProfile=ReleasePublish-O1
   set configuration=Release
   goto :StartCompilation
 ) else if "%speedChoice%" == "2" (
-  echo Compiling with Size preferred optimization
+  echo Compiling with Speed preferred optimization
   set publishProfile=ReleasePublish-O2
   set configuration=Release
   goto :StartCompilation
