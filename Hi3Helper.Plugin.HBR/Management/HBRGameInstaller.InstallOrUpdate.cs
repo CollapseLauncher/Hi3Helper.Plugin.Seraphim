@@ -117,7 +117,7 @@ public partial class HBRGameInstaller
             // Use Retry-able Copy-To Stream task to start the download
             await using RetryableCopyToStreamTask downloadTask = RetryableCopyToStreamTask
                 .CreateTask(
-                    async (pos, thisCtx) => await BridgedNetworkStream.CreateStream(_downloadHttpClient, assetDownloadUrl, pos, null, thisCtx),
+                    (pos, thisCtx) => _downloadHttpClient.CreateHttpBridgedStream(assetDownloadUrl, pos, null, thisCtx),
                     fileStream,
                     new RetryableCopyToStreamTaskOptions
                     {
