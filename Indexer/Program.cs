@@ -1,15 +1,14 @@
 ﻿using Hi3Helper.Plugin.Core;
-using Hi3Helper.Plugin.Core.ABI;
 using Hi3Helper.Plugin.Core.Management;
 using Hi3Helper.Plugin.Core.Update;
-using Hi3Helper.Plugin.Core.Utility;
 using System;
 using System.Buffers;
+using System.Buffers.Text;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Security.Cryptography;
@@ -18,7 +17,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PluginIndexer;
+namespace Indexer;
 
 public class SelfUpdateAssetInfo
 {
@@ -99,6 +98,10 @@ public class Program
         writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginVersion), reference.PluginVersion.ToString());
         writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginCreationDate), creationDate);
         writer.WriteString(nameof(SelfUpdateReferenceInfo.ManifestDate), DateTimeOffset.Now);
+        if (reference.PluginAlternativeIcon?.Length != 0)
+        {
+            writer.WriteBase64String(nameof(SelfUpdateReferenceInfo.PluginAlternativeIcon), reference.PluginAlternativeIcon);
+        }
 
         writer.WriteStartArray("Assets");
         foreach (var asset in assetInfo)
@@ -262,6 +265,7 @@ public class Program
                 PluginCreationDate = *pluginCreationDate,
                 PluginVersion = pluginVersion,
                 PluginStandardVersion = pluginStandardVersion,
+                PluginAlternativeIcon = TryGetAlternateIconData(plugin),
                 MainLibraryName = fileName
             };
             return true;
@@ -279,5 +283,38 @@ public class Program
     {
         string? execPath = Path.GetFileName(Environment.ProcessPath);
         Console.WriteLine($"Usage: {execPath} [plugin_dll_directory_path]");
+    }
+
+    private static byte[]? TryGetAlternateIconData(IPlugin plugin)
+    {
+        try
+        {
+            plugin.GetPluginAppIconUrl(out string? iconUrlOrData);
+            if (string.IsNullOrEmpty(iconUrlOrData))
+            {
+                return null;
+            }
+
+            if (Base64.IsValid(iconUrlOrData))
+            {
+                return Convert.FromBase64String(iconUrlOrData);
+            }
+
+            // Download if the string is a URL.
+            if (!Uri.TryCreate(iconUrlOrData, UriKind.Absolute, out Uri? iconUrl))
+            {
+                return null;
+            }
+
+            using HttpClient httpClient = new HttpClient();
+            using HttpResponseMessage response = httpClient.GetAsync(iconUrl, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+
+            return !response.IsSuccessStatusCode ? null : response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error while retrieving plugin alternative icon data: {ex}");
+            return null;
+        }
     }
 }
