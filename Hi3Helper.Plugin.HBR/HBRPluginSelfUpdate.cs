@@ -22,9 +22,13 @@ internal partial class HBRPluginSelfUpdate : PluginSelfUpdateBase
     protected override ReadOnlySpan<string> BaseCdnUrlSpan => BaseCdnUrl;
     protected override HttpClient UpdateHttpClient { get; }
 
-    internal HBRPluginSelfUpdate() => UpdateHttpClient = new PluginHttpClientBuilder()
-        .AllowRedirections()
-        .AllowUntrustedCert()
-        .AllowCookies()
-        .Create();
+    internal HBRPluginSelfUpdate()
+    {
+        PluginHttpClientBuilder builder = new PluginHttpClientBuilder();
+        builder.AllowRedirections();
+        builder.AllowUntrustedCert();
+        builder.AllowCookies();
+
+        UpdateHttpClient = builder.Create();
+    }
 }
