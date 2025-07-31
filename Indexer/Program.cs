@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Security.Cryptography;
@@ -50,7 +49,7 @@ public class Program
                 return 2;
             }
 
-            FileInfo? fileInfo = FindPluginLibraryAndGetAssets(path, out List<SelfUpdateAssetInfo> assetInfo, out SelfUpdateReferenceInfo? reference);
+            FileInfo? fileInfo = FindPluginLibraryAndGetAssets(path, out List<SelfUpdateAssetInfo> assetInfo, out PluginManifest? reference);
             if (fileInfo == null || reference == null || string.IsNullOrEmpty(reference.MainLibraryName))
             {
                 Console.Error.WriteLine("No valid plugin library was found.");
@@ -67,7 +66,7 @@ public class Program
         }
     }
 
-    private static int WriteToJson(SelfUpdateReferenceInfo reference, string referenceFilePath, List<SelfUpdateAssetInfo> assetInfo)
+    private static int WriteToJson(PluginManifest reference, string referenceFilePath, List<SelfUpdateAssetInfo> assetInfo)
     {
         DateTimeOffset creationDate = reference.PluginCreationDate.ToOffset(reference.PluginCreationDate.Offset);
 
@@ -90,17 +89,17 @@ public class Program
 
         writer.WriteStartObject();
 
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainLibraryName), reference.MainLibraryName);
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginName), reference.MainPluginName);
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginAuthor), reference.MainPluginAuthor);
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.MainPluginDescription), reference.MainPluginDescription);
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginStandardVersion), reference.PluginStandardVersion.ToString());
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginVersion), reference.PluginVersion.ToString());
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.PluginCreationDate), creationDate);
-        writer.WriteString(nameof(SelfUpdateReferenceInfo.ManifestDate), DateTimeOffset.Now);
+        writer.WriteString(nameof(PluginManifest.MainLibraryName), reference.MainLibraryName);
+        writer.WriteString(nameof(PluginManifest.MainPluginName), reference.MainPluginName);
+        writer.WriteString(nameof(PluginManifest.MainPluginAuthor), reference.MainPluginAuthor);
+        writer.WriteString(nameof(PluginManifest.MainPluginDescription), reference.MainPluginDescription);
+        writer.WriteString(nameof(PluginManifest.PluginStandardVersion), reference.PluginStandardVersion.ToString());
+        writer.WriteString(nameof(PluginManifest.PluginVersion), reference.PluginVersion.ToString());
+        writer.WriteString(nameof(PluginManifest.PluginCreationDate), creationDate);
+        writer.WriteString(nameof(PluginManifest.ManifestDate), DateTimeOffset.Now);
         if (reference.PluginAlternativeIcon?.Length != 0)
         {
-            writer.WriteBase64String(nameof(SelfUpdateReferenceInfo.PluginAlternativeIcon), reference.PluginAlternativeIcon);
+            writer.WriteString(nameof(PluginManifest.PluginAlternativeIcon), reference.PluginAlternativeIcon);
         }
 
         writer.WriteStartArray("Assets");
@@ -123,7 +122,7 @@ public class Program
         return 0;
     }
 
-    private static FileInfo? FindPluginLibraryAndGetAssets(string dirPath, out List<SelfUpdateAssetInfo> fileList, out SelfUpdateReferenceInfo? referenceInfo)
+    private static FileInfo? FindPluginLibraryAndGetAssets(string dirPath, out List<SelfUpdateAssetInfo> fileList, out PluginManifest? referenceInfo)
     {
         DirectoryInfo directoryInfo = new DirectoryInfo(dirPath);
         List<SelfUpdateAssetInfo> fileListRef = [];
@@ -131,7 +130,7 @@ public class Program
         referenceInfo = null;
 
         FileInfo? mainLibraryFileInfo = null;
-        SelfUpdateReferenceInfo? referenceInfoResult = null;
+        PluginManifest? referenceInfoResult = null;
 
         Parallel.ForEach(directoryInfo.EnumerateFiles("*", SearchOption.AllDirectories).Where(x => !x.Name.Equals("manifest.json", StringComparison.OrdinalIgnoreCase)), Impl);
         referenceInfo = referenceInfoResult;
@@ -143,7 +142,7 @@ public class Program
             string fileName = fileInfo.FullName.AsSpan(directoryInfo.FullName.Length).TrimStart("\\/").ToString();
 
             if (mainLibraryFileInfo == null &&
-                IsPluginLibrary(fileInfo, fileName, out SelfUpdateReferenceInfo? referenceInfoInner))
+                IsPluginLibrary(fileInfo, fileName, out PluginManifest? referenceInfoInner))
             {
                 Interlocked.Exchange(ref mainLibraryFileInfo, fileInfo);
                 Interlocked.Exchange(ref referenceInfoResult, referenceInfoInner);
@@ -186,7 +185,7 @@ public class Program
     private unsafe delegate void* GetPlugin();
     private unsafe delegate GameVersion* GetVersion();
 
-    private static unsafe bool IsPluginLibrary(FileInfo fileInfo, string fileName, [NotNullWhen(true)] out SelfUpdateReferenceInfo? referenceInfo)
+    private static unsafe bool IsPluginLibrary(FileInfo fileInfo, string fileName, [NotNullWhen(true)] out PluginManifest? referenceInfo)
     {
         nint handle = nint.Zero;
         referenceInfo = null;
@@ -256,7 +255,7 @@ public class Program
             plugin.GetPluginDescription(out string? pluginDescription);
             plugin.GetPluginCreationDate(out DateTime* pluginCreationDate);
 
-            referenceInfo = new SelfUpdateReferenceInfo
+            referenceInfo = new PluginManifest
             {
                 Assets = [],
                 MainPluginName = pluginName,
@@ -285,7 +284,7 @@ public class Program
         Console.WriteLine($"Usage: {execPath} [plugin_dll_directory_path]");
     }
 
-    private static byte[]? TryGetAlternateIconData(IPlugin plugin)
+    private static string? TryGetAlternateIconData(IPlugin plugin)
     {
         try
         {
@@ -297,19 +296,15 @@ public class Program
 
             if (Base64.IsValid(iconUrlOrData))
             {
-                return Convert.FromBase64String(iconUrlOrData);
+                return iconUrlOrData;
             }
 
-            // Download if the string is a URL.
             if (!Uri.TryCreate(iconUrlOrData, UriKind.Absolute, out Uri? iconUrl))
             {
                 return null;
             }
 
-            using HttpClient httpClient = new HttpClient();
-            using HttpResponseMessage response = httpClient.GetAsync(iconUrl, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
-
-            return !response.IsSuccessStatusCode ? null : response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+            return iconUrl.ToString();
         }
         catch (Exception ex)
         {
