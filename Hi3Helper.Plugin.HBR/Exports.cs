@@ -9,7 +9,7 @@ namespace Hi3Helper.Plugin.HBR;
 /// </summary>
 public class Exports : SharedStatic
 {
-    static Exports() => Load<HBRPlugin>(!RuntimeFeature.IsDynamicCodeCompiled ? new Core.Management.GameVersion(0, 7, 0, 0) : default); // Loads the IPlugin instance as HBRPlugin.
+    static Exports() => Load<HBRPlugin>(!RuntimeFeature.IsDynamicCodeCompiled ? new Core.Management.GameVersion(0, 8, 1, 0) : default); // Loads the IPlugin instance as HBRPlugin.
 
     [UnmanagedCallersOnly(EntryPoint = "TryGetApiExport", CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe int TryGetApiExport(char* exportName, void** delegateP) =>
