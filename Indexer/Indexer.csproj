@@ -14,12 +14,12 @@
         <AssemblyName>Indexer</AssemblyName>
         <ProductName>Collapse Launcher Index Generator</ProductName>
         <Product>Collapse</Product>
-        <Description>This library is a plugin build executable which generates a metadata contains the index of the plugin libraries.</Description>
+        <Description>This library is a plugin build executable which generates a metadata and package for the plugin library.</Description>
         <AssemblyTitle>Collapse Launcher Index Generator</AssemblyTitle>
         <Company>Collapse Launcher Team</Company>
         <Authors>$(Company). neon-nyan, Cry0, bagusnl, shatyuka, gablm.</Authors>
         <Copyright>Copyright 2022-2025 $(Company)</Copyright>
-        <Version>1.0.0</Version>
+        <Version>1.1.0</Version>
         <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
 

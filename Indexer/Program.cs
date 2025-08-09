@@ -7,14 +7,17 @@ using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+// ReSharper disable AccessToDisposedClosure
 
 namespace Indexer;
 
@@ -31,6 +34,7 @@ public class Program
 {
     private static readonly string[]             AllowedPluginExt             = [".dll", ".exe", ".so", ".dylib"];
     private static readonly SearchValues<string> AllowedPluginExtSearchValues = SearchValues.Create(AllowedPluginExt, StringComparison.OrdinalIgnoreCase);
+    private static readonly string               PackageExtension             = ".zip";
 
     public static int Main(params string[] args)
     {
@@ -57,7 +61,8 @@ public class Program
             }
 
             string referenceFilePath = Path.Combine(path, "manifest.json");
-            return WriteToJson(reference, referenceFilePath, assetInfo);
+            int retCode = WriteToJson(reference, referenceFilePath, assetInfo);
+            return retCode != 0 ? retCode : PackFiles(path, reference, assetInfo);
         }
         catch (Exception ex)
         {
@@ -96,7 +101,7 @@ public class Program
         writer.WriteString(nameof(PluginManifest.PluginStandardVersion), reference.PluginStandardVersion.ToString());
         writer.WriteString(nameof(PluginManifest.PluginVersion), reference.PluginVersion.ToString());
         writer.WriteString(nameof(PluginManifest.PluginCreationDate), creationDate);
-        writer.WriteString(nameof(PluginManifest.ManifestDate), DateTimeOffset.Now);
+        writer.WriteString(nameof(PluginManifest.ManifestDate), reference.ManifestDate);
         if (reference.PluginAlternativeIcon?.Length != 0)
         {
             writer.WriteString(nameof(PluginManifest.PluginAlternativeIcon), reference.PluginAlternativeIcon);
@@ -122,6 +127,75 @@ public class Program
         return 0;
     }
 
+    private static int PackFiles(string outputPath, PluginManifest referenceInfo, List<SelfUpdateAssetInfo> fileList)
+    {
+        string packageName = $"{Path.GetFileNameWithoutExtension(referenceInfo.MainLibraryName)}_{referenceInfo.PluginVersion}_API-{referenceInfo.PluginStandardVersion}_{referenceInfo.ManifestDate.ToString("yyyyMMdd")}";
+        string packageFilePath = Path.Combine(outputPath, packageName + PackageExtension);
+
+        int threads = Environment.ProcessorCount;
+
+        Console.WriteLine($"Writing output package in parallel using {threads} threads at: {packageFilePath}...");
+
+        try
+        {
+            using FileStream packageFileStream = File.Create(packageFilePath);
+            using ZipArchive packageWriter = new ZipArchive(packageFileStream, ZipArchiveMode.Create, false, Encoding.UTF8);
+
+            fileList.Add(new SelfUpdateAssetInfo
+            {
+                FileHash = [],
+                FilePath = "manifest.json"
+            });
+
+            int length = fileList.Count;
+            int count = 0;
+
+            Lock thisLock = new Lock();
+            Parallel.ForEach(fileList, CompressBrotliAndCreate);
+
+            return 0;
+
+            void CompressBrotliAndCreate(SelfUpdateAssetInfo asset)
+            {
+                Interlocked.Increment(ref count);
+                int currentCount = count;
+
+                string filePath = Path.Combine(outputPath, asset.FilePath);
+                DateTime lastWriteTime = File.GetLastWriteTimeUtc(filePath);
+
+                if (lastWriteTime.Year is < 1980 or > 2107)
+                    lastWriteTime = new DateTime(1980, 1, 1, 0, 0, 0);
+
+                Console.WriteLine($"  [{currentCount}/{length}] Compressing asset to buffer: {asset.FilePath}");
+                using MemoryStream compressedStream = new MemoryStream(); 
+                using BrotliStream brotliStream = new BrotliStream(compressedStream, CompressionLevel.SmallestSize);
+                using FileStream fileStream = File.OpenRead(filePath);
+
+                fileStream.CopyTo(brotliStream);
+                brotliStream.Flush();
+
+                compressedStream.Position = 0;
+
+                using (thisLock.EnterScope())
+                {
+                    Console.WriteLine($"  [{currentCount}/{length}] Compress done. Now locking and writing buffer to package for: {asset.FilePath}");
+
+                    string entryBrExt = asset.FilePath + ".br";
+                    ZipArchiveEntry entry = packageWriter.CreateEntry(entryBrExt, CompressionLevel.NoCompression);
+                    entry.LastWriteTime = lastWriteTime;
+
+                    using Stream entryStream = entry.Open();
+                    compressedStream.CopyTo(entryStream);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return Marshal.GetHRForException(e);
+        }
+    }
+
     private static FileInfo? FindPluginLibraryAndGetAssets(string dirPath, out List<SelfUpdateAssetInfo> fileList, out PluginManifest? referenceInfo)
     {
         DirectoryInfo directoryInfo = new DirectoryInfo(dirPath);
@@ -140,6 +214,10 @@ public class Program
         void Impl(FileInfo fileInfo)
         {
             string fileName = fileInfo.FullName.AsSpan(directoryInfo.FullName.Length).TrimStart("\\/").ToString();
+            if (fileName.EndsWith(PackageExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
 
             if (mainLibraryFileInfo == null &&
                 IsPluginLibrary(fileInfo, fileName, out PluginManifest? referenceInfoInner))
@@ -265,7 +343,8 @@ public class Program
                 PluginVersion = pluginVersion,
                 PluginStandardVersion = pluginStandardVersion,
                 PluginAlternativeIcon = TryGetAlternateIconData(plugin),
-                MainLibraryName = fileName
+                MainLibraryName = fileName,
+                ManifestDate = DateTimeOffset.UtcNow
             };
             return true;
         }
