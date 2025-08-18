@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.HBR", "Hi3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hi3Helper.Plugin.Core", "Hi3Helper.Plugin.Core\Hi3Helper.Plugin.Core.csproj", "{6D56B964-1509-482F-4589-C780CDE5C703}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Indexer", "Indexer\Indexer.csproj", "{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginTest", "Hi3Helper.Plugin.Core\PluginTest\PluginTest.csproj", "{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}"
 EndProject
 Global
@@ -35,14 +33,6 @@ Global
 		{6D56B964-1509-482F-4589-C780CDE5C703}.Release|x64.Build.0 = Release|x64
 		{6D56B964-1509-482F-4589-C780CDE5C703}.ReleaseNoReflection|x64.ActiveCfg = ReleaseNoReflection|x64
 		{6D56B964-1509-482F-4589-C780CDE5C703}.ReleaseNoReflection|x64.Build.0 = ReleaseNoReflection|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.Debug|x64.ActiveCfg = Debug|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.Debug|x64.Build.0 = Debug|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.DebugNoReflection|x64.ActiveCfg = Debug|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.DebugNoReflection|x64.Build.0 = Debug|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.Release|x64.ActiveCfg = Release|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.Release|x64.Build.0 = Release|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.ReleaseNoReflection|x64.ActiveCfg = Release|x64
-		{0D34F528-5F09-AD5B-9804-C4EE38FACD1C}.ReleaseNoReflection|x64.Build.0 = Release|x64
 		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Debug|x64.ActiveCfg = Debug|x64
 		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.Debug|x64.Build.0 = Debug|x64
 		{9E58C55F-9D8C-F9CB-F23A-11E336C9D51D}.DebugNoReflection|x64.ActiveCfg = DebugNoReflection|x64
