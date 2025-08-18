@@ -111,17 +111,17 @@ public partial class Seraphim
             }
         }
 
-        if (returnProcess == null)
+        try
         {
-            return null;
+            return returnProcess;
         }
-
-        foreach (var process in processes.Where(x => x != returnProcess))
+        finally
         {
-            process.Dispose();
+            foreach (var process in processes.Where(x => x != returnProcess))
+            {
+                process.Dispose();
+            }
         }
-
-        return returnProcess;
     }
 
     private static bool TryGetGameExecutablePath(GameManagerExtension.RunGameFromGameManagerContext context, [NotNullWhen(true)] out string? gameExecutablePath)
