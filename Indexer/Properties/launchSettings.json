@@ -2,7 +2,7 @@
   "profiles": {
     "Indexer": {
       "commandName": "Project",
-      "commandLineArgs": "H:\\myGit\\Hi3Helper.Plugin.HBR\\Hi3Helper.Plugin.HBR\\publish\\Release"
+      "commandLineArgs": "E:\\myGit\\Hi3Helper.Plugin.HBR\\Hi3Helper.Plugin.HBR\\publish\\Release"
     }
   }
 }
