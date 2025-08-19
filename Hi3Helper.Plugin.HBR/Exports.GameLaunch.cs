@@ -219,7 +219,7 @@ public partial class Seraphim
             char* lineP   = line.GetPinnableStringPointer();
             int   lineLen = line.Length;
 
-            invoke?.Invoke(lineP, lineLen, false);
+            invoke?.Invoke(lineP, lineLen, 0);
         }
     }
 }
