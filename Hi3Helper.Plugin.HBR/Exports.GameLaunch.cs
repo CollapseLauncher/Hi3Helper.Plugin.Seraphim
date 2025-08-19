@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Hi3Helper.Plugin.HBR;
 
@@ -24,14 +25,22 @@ public partial class Seraphim
         using (process)
         {
             process.Start();
-            process.PriorityBoostEnabled = isRunBoosted;
-            process.PriorityClass        = processPriority;
+
+            try
+            {
+                process.PriorityBoostEnabled = isRunBoosted;
+                process.PriorityClass        = processPriority;
+            }
+            catch (Exception e)
+            {
+                InstanceLogger.LogError(e, "[Seraphim::LaunchGameFromGameManagerCoreAsync()] An error has occurred while trying to set process priority, Ignoring!");
+            }
 
             CancellationTokenSource gameLogReaderCts = new CancellationTokenSource();
             CancellationTokenSource coopCts          = CancellationTokenSource.CreateLinkedTokenSource(token, gameLogReaderCts.Token);
 
             // Run game log reader (Create a new thread)
-            _ = ReadGameLog(context, coopCts.Token);
+            _ = ReadGameLog(context, process, coopCts.Token);
 
             // ReSharper disable once PossiblyMistakenUseOfCancellationToken
             await process.WaitForExitAsync(token);
@@ -42,9 +51,11 @@ public partial class Seraphim
     }
 
     /// <inheritdoc/>
-    public override bool IsGameRunningCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool isGameRunning)
+    public override bool IsGameRunningCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool isGameRunning, out DateTime gameStartTime)
     {
         isGameRunning = false;
+        gameStartTime = default;
+
         if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
         {
             return false;
@@ -52,6 +63,7 @@ public partial class Seraphim
 
         using Process? process = FindExecutableProcess(gameExecutablePath);
         isGameRunning = process != null;
+        gameStartTime = process?.StartTime ?? default;
 
         return true;
     }
@@ -75,9 +87,11 @@ public partial class Seraphim
     }
 
     /// <inheritdoc/>
-    public override bool KillRunningGameCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool wasGameRunning)
+    public override bool KillRunningGameCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool wasGameRunning, out DateTime gameStartTime)
     {
         wasGameRunning = false;
+        gameStartTime  = default;
+
         if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
         {
             return false;
@@ -90,6 +104,7 @@ public partial class Seraphim
         }
 
         wasGameRunning = true;
+        gameStartTime  = process.StartTime;
         process.Kill();
         return true;
     }
@@ -166,7 +181,7 @@ public partial class Seraphim
         return true;
     }
 
-    private static async Task ReadGameLog(GameManagerExtension.RunGameFromGameManagerContext context, CancellationToken token)
+    private static async Task ReadGameLog(GameManagerExtension.RunGameFromGameManagerContext context, Process process, CancellationToken token)
     {
         if (context is not { PresetConfig: PluginPresetConfigBase presetConfig })
         {
@@ -184,6 +199,13 @@ public partial class Seraphim
 
         string gameLogPath = Path.Combine(gameAppDataPath, gameLogFileName);
 
+        // Make artificial delay and read the game log if the window is already spawned.
+        while (!token.IsCancellationRequested &&
+               process.MainWindowHandle == nint.Zero)
+        {
+            await Task.Delay(250, token);
+        }
+
         int retry = 5;
         while (!File.Exists(gameLogPath) && retry >= 0)
         {
@@ -197,11 +219,12 @@ public partial class Seraphim
             return;
         }
 
-        var printCallback = context.PrintGameLogCallback;
+        GameManagerExtension.PrintGameLog? printCallback = context.PrintGameLogCallback;
 
-        await using FileStream fileStream = File.Open(gameLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        await using FileStream fileStream = File.Open(gameLogPath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite);
         using StreamReader reader = new StreamReader(fileStream);
 
+        fileStream.Position = 0;
         while (!token.IsCancellationRequested)
         {
             while (await reader.ReadLineAsync(token) is { } line)
