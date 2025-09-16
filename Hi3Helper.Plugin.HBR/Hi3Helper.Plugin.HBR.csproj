@@ -18,7 +18,7 @@
     <Company>Collapse Launcher Team</Company>
     <Authors>$(Company). neon-nyan, Cry0, bagusnl, shatyuka, gablm.</Authors>
     <Copyright>Copyright 2022-2025 $(Company)</Copyright>
-    <Version>0.8.3</Version>
+    <Version>0.8.0</Version>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <Configurations>Debug;Release;DebugNoReflection;ReleaseNoReflection</Configurations>
   </PropertyGroup>
@@ -28,8 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="9.0.8" />
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="9.0.8" />
+    <PackageReference Include="System.IO.Hashing" Version="9.0.9" />
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="9.0.9" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='DebugNoReflection'">
