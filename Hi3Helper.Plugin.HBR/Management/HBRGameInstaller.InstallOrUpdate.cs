@@ -44,6 +44,9 @@ public partial class HBRGameInstaller
             throw new NullReferenceException("Base URL cannot be retrieved as it's null-ed!");
         }
 
+        // HOTFIX: 20250921: Create a blank asset instead of downloading 0-byte assets.
+        SkipBlankAssets(gamePath, assets);
+
         // Perform write execution
         await Parallel.ForEachAsync(assets, new ParallelOptions
         {
@@ -133,6 +136,34 @@ public partial class HBRGameInstaller
                 progressDelegate?.Invoke(in installProgress);
             }, innerToken);
         }
+    }
+
+    private static void SkipBlankAssets(string gamePath, List<GameInstallAsset> gameAsset)
+    {
+        List<GameInstallAsset> gameAssetFiltered = [];
+
+        foreach (GameInstallAsset asset in gameAsset)
+        {
+            if (asset.AssetSize == 0)
+            {
+                FileInfo fileInfo = new(Path.Combine(gamePath, asset.AssetPath ?? ""));
+                fileInfo.Directory?.Create();
+
+                if (fileInfo is { Exists: true, Length: 0 })
+                {
+                    continue;
+                }
+
+                // Create a blank file and then skipped.
+                using FileStream fileStream = fileInfo.Create();
+                continue;
+            }
+
+            gameAssetFiltered.Add(asset);
+        }
+
+        gameAsset.Clear();
+        gameAsset.AddRange(gameAssetFiltered);
     }
 
     private static async Task<List<GameInstallAsset>> StartGetMismatchedAssets(
