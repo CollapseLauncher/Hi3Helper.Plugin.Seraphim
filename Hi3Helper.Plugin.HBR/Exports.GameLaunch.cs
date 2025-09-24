@@ -15,43 +15,48 @@ namespace Hi3Helper.Plugin.HBR;
 public partial class Seraphim
 {
     /// <inheritdoc/>
-    public override async Task<bool> LaunchGameFromGameManagerCoreAsync(GameManagerExtension.RunGameFromGameManagerContext context, string? startArgument, bool isRunBoosted, ProcessPriorityClass processPriority, CancellationToken token)
+    protected override (bool IsSupported, Task<bool> Task) LaunchGameFromGameManagerCoreAsync(GameManagerExtension.RunGameFromGameManagerContext context, string? startArgument, bool isRunBoosted, ProcessPriorityClass processPriority, CancellationToken token)
     {
-        if (!TryGetGameProcessFromContext(context, startArgument, out Process? process))
-        {
-            return false;
-        }
+        return (true, Impl());
 
-        using (process)
+        async Task<bool> Impl()
         {
-            process.Start();
-
-            try
+            if (!TryGetGameProcessFromContext(context, startArgument, out Process? process))
             {
-                process.PriorityBoostEnabled = isRunBoosted;
-                process.PriorityClass        = processPriority;
-            }
-            catch (Exception e)
-            {
-                InstanceLogger.LogError(e, "[Seraphim::LaunchGameFromGameManagerCoreAsync()] An error has occurred while trying to set process priority, Ignoring!");
+                return false;
             }
 
-            CancellationTokenSource gameLogReaderCts = new CancellationTokenSource();
-            CancellationTokenSource coopCts          = CancellationTokenSource.CreateLinkedTokenSource(token, gameLogReaderCts.Token);
+            using (process)
+            {
+                process.Start();
 
-            // Run game log reader (Create a new thread)
-            _ = ReadGameLog(context, process, coopCts.Token);
+                try
+                {
+                    process.PriorityBoostEnabled = isRunBoosted;
+                    process.PriorityClass        = processPriority;
+                }
+                catch (Exception e)
+                {
+                    InstanceLogger.LogError(e, "[Seraphim::LaunchGameFromGameManagerCoreAsync()] An error has occurred while trying to set process priority, Ignoring!");
+                }
 
-            // ReSharper disable once PossiblyMistakenUseOfCancellationToken
-            await process.WaitForExitAsync(token);
-            await gameLogReaderCts.CancelAsync();
+                CancellationTokenSource gameLogReaderCts = new();
+                CancellationTokenSource coopCts          = CancellationTokenSource.CreateLinkedTokenSource(token, gameLogReaderCts.Token);
 
-            return true;
+                // Run game log reader (Create a new thread)
+                _ = ReadGameLog(context, process, coopCts.Token);
+
+                // ReSharper disable once PossiblyMistakenUseOfCancellationToken
+                await process.WaitForExitAsync(token);
+                await gameLogReaderCts.CancelAsync();
+
+                return true;
+            }
         }
     }
 
     /// <inheritdoc/>
-    public override bool IsGameRunningCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool isGameRunning, out DateTime gameStartTime)
+    protected override bool IsGameRunningCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool isGameRunning, out DateTime gameStartTime)
     {
         isGameRunning = false;
         gameStartTime = default;
@@ -69,25 +74,30 @@ public partial class Seraphim
     }
 
     /// <inheritdoc/>
-    public override async Task<bool> WaitRunningGameCoreAsync(GameManagerExtension.RunGameFromGameManagerContext context, CancellationToken token)
+    protected override (bool IsSupported, Task<bool> Task) WaitRunningGameCoreAsync(GameManagerExtension.RunGameFromGameManagerContext context, CancellationToken token)
     {
-        if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
-        {
-            return false;
-        }
+        return (true, Impl());
 
-        using Process? process = FindExecutableProcess(gameExecutablePath);
-        if (process == null)
+        async Task<bool> Impl()
         {
+            if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
+            {
+                return false;
+            }
+
+            using Process? process = FindExecutableProcess(gameExecutablePath);
+            if (process == null)
+            {
+                return true;
+            }
+
+            await process.WaitForExitAsync(token);
             return true;
         }
-
-        await process.WaitForExitAsync(token);
-        return true;
     }
 
     /// <inheritdoc/>
-    public override bool KillRunningGameCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool wasGameRunning, out DateTime gameStartTime)
+    protected override bool KillRunningGameCore(GameManagerExtension.RunGameFromGameManagerContext context, out bool wasGameRunning, out DateTime gameStartTime)
     {
         wasGameRunning = false;
         gameStartTime  = default;
