@@ -63,7 +63,7 @@ public partial class Seraphim
 
         if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
         {
-            return false;
+            return true;
         }
 
         using Process? process = FindExecutableProcess(gameExecutablePath);
@@ -104,7 +104,7 @@ public partial class Seraphim
 
         if (!TryGetGameExecutablePath(context, out string? gameExecutablePath))
         {
-            return false;
+            return true;
         }
 
         using Process? process = FindExecutableProcess(gameExecutablePath);
