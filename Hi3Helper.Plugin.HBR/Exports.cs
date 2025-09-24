@@ -17,7 +17,7 @@ public partial class Seraphim : SharedStaticV1Ext<Seraphim> // 2025-08-18: We us
                                                             // 2025-09-24: SharedStatic<T> is now changed to SharedStaticV1Ext<T>.
                                                             //             This changes also bring new extension methods for Discord Presence API. 
 {
-    static Seraphim() => Load<HBRPlugin>(!RuntimeFeature.IsDynamicCodeCompiled ? new Core.Management.GameVersion(0, 8, 1, 0) : default); // Loads the IPlugin instance as HBRPlugin.
+    static Seraphim() => Load<HBRPlugin>(!RuntimeFeature.IsDynamicCodeCompiled ? new Core.Management.GameVersion(0, 8, 2, 0) : default); // Loads the IPlugin instance as HBRPlugin.
 
     [UnmanagedCallersOnly(EntryPoint = "TryGetApiExport", CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe int TryGetApiExport(char* exportName, void** delegateP) =>
