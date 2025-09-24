@@ -146,7 +146,12 @@ public partial class HBRGameInstaller
         {
             if (asset.AssetSize == 0)
             {
-                FileInfo fileInfo = new(Path.Combine(gamePath, asset.AssetPath ?? ""));
+                string normalizedRelPath = asset.AssetPath
+                                                .AsSpan()
+                                                .Trim("/\\")
+                                                .ToString();
+
+                FileInfo fileInfo = new(Path.Combine(gamePath, normalizedRelPath));
                 fileInfo.Directory?.Create();
 
                 if (fileInfo is { Exists: true, Length: 0 })
