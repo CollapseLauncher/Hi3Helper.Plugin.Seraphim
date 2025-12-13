@@ -1,4 +1,4 @@
-name: Qodana and Build
+name: Build
 on:
   workflow_dispatch:
   pull_request:
@@ -16,7 +16,7 @@ jobs:
         checks: write
         security-events: write
     env:
-      DOTNET_VERSION: '9.0.3xx'
+      DOTNET_VERSION: '10.0.1xx'
       DOTNET_QUALITY: 'ga'
     steps:
       - uses: actions/checkout@v3
@@ -29,27 +29,15 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           dotnet-quality: ${{ env.DOTNET_QUALITY }}
-          
-      - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@main
-        continue-on-error: true
-        with:
-          args: --ide,QDNET
-          pr-mode: false
-        env:
-          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_239419487 }}
-          QODANA_ENDPOINT: 'https://qodana.cloud'
 
-      - uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
+      - name: Build using O1 config
+        run: |
+          .\CompileAOTAndShip.bat 1 
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
           name: Hi3Helper.Plugin.HBR_${{ github.sha }}
-          path: .\Hi3Helper.Plugin.HBR\publish\Release\
-          compression-level: 9
+          path: .\Hi3Helper.Plugin.HBR\publish\Release\*.zip
+          compression-level: 0 # why zipping a zip that is zipped as brotli ?
