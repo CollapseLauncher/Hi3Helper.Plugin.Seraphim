@@ -193,7 +193,7 @@ public partial class Seraphim
 
     private static async Task ReadGameLog(GameManagerExtension.RunGameFromGameManagerContext context, Process process, CancellationToken token)
     {
-        if (context is not { PresetConfig: PluginPresetConfigBase presetConfig })
+        if (context is not { PresetConfig: PluginPresetConfigBase presetConfig, PrintGameLogCallback: not null })
         {
             return;
         }
