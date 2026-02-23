@@ -19,14 +19,14 @@ namespace Hi3Helper.Plugin.HBR.Management;
 public partial class HBRGameInstaller
 {
     private async ValueTask StartInstallAsyncInner(
-        string gamePath,
-        InstallProgress installProgress,
-        List<GameInstallAsset> assets,
-        string assetRootSuffix,
-        InstallProgressDelegate? progressDelegate,
+        string                        gamePath,
+        InstallProgress               installProgress,
+        List<GameInstallAsset>        assets,
+        string                        assetRootSuffix,
+        InstallProgressDelegate?      progressDelegate,
         InstallProgressStateDelegate? progressStateDelegate,
-        bool isDownloadThroughMode = false,
-        CancellationToken token = default)
+        bool                          isDownloadThroughMode = false,
+        CancellationToken             token                 = default)
     {
         if (assets.Count == 0)
         {
@@ -47,12 +47,21 @@ public partial class HBRGameInstaller
         // HOTFIX: 20250921: Create a blank asset instead of downloading 0-byte assets.
         SkipBlankAssets(gamePath, assets);
 
-        // Perform write execution
-        await Parallel.ForEachAsync(assets, new ParallelOptions
+        nint speedLimiterServiceContext = SpeedLimiterService.CreateServiceContext();
+
+        try
         {
-            MaxDegreeOfParallelism = Environment.ProcessorCount,
-            CancellationToken      = token
-        }, Impl);
+            // Perform write execution
+            await Parallel.ForEachAsync(assets, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount,
+                CancellationToken      = token
+            }, Impl);
+        }
+        finally
+        {
+            SpeedLimiterService.FreeServiceContext(speedLimiterServiceContext);
+        }
 
         return;
 
@@ -64,7 +73,7 @@ public partial class HBRGameInstaller
             }
 
             string   filePath = Path.Combine(gamePath, asset.AssetPath.TrimStart("/\\").ToString());
-            FileInfo fileInfo = new FileInfo(filePath);
+            FileInfo fileInfo = new(filePath);
             fileInfo.Directory?.Create();
 
             if (fileInfo.Exists)
@@ -81,9 +90,9 @@ public partial class HBRGameInstaller
 
             await using FileStream fileStream = fileInfo.Open(new FileStreamOptions
             {
-                Mode = isDownloadThroughMode ? FileMode.Create : FileMode.OpenOrCreate,
-                Access = isDownloadThroughMode ? FileAccess.Write : FileAccess.ReadWrite,
-                Share = isDownloadThroughMode ? FileShare.Write : FileShare.ReadWrite,
+                Mode    = isDownloadThroughMode ? FileMode.Create : FileMode.OpenOrCreate,
+                Access  = isDownloadThroughMode ? FileAccess.Write : FileAccess.ReadWrite,
+                Share   = isDownloadThroughMode ? FileShare.Write : FileShare.ReadWrite,
                 Options = FileOptions.SequentialScan
             });
             Interlocked.Increment(ref installProgress.DownloadedCount);
