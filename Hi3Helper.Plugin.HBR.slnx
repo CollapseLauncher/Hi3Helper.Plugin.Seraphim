@@ -6,11 +6,6 @@
     <BuildType Name="ReleaseNoReflection" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="../PluginPackerAndIndexer/Indexer.csproj">
-    <BuildType Solution="DebugNoReflection|*" Project="Debug" />
-    <BuildType Solution="ReleaseNoReflection|*" Project="Release" />
-    <Platform Project="x64" />
-  </Project>
   <Project Path="Hi3Helper.Plugin.Core/Hi3Helper.Plugin.Core.csproj">
     <Platform Project="x64" />
   </Project>
