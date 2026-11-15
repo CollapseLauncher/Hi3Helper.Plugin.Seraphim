@@ -1,6 +1,6 @@
 @echo off
 set _pluginName=Hi3Helper.Plugin.HBR
-set _isRemoveSymbol=true
+set _isRemoveSymbol=false
 
 set currentPath=%~dp0
 set projectPath=%currentPath%%_pluginName%
