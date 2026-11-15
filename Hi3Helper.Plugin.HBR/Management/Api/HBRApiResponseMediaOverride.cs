@@ -18,7 +18,7 @@ public class HBRApiResponseMediaOverrideEntry
     : IJsonElementParsable<HBRApiResponseMediaOverrideEntry>
 #endif
 {
-    public string?        BackgroundUrl { get; init; }
+    public string?        BackgroundUrl { get; set; }
     public DateTimeOffset ExpireDate    { get; init; }
 
     public static List<HBRApiResponseMediaOverrideEntry>? ParseListFrom(JsonElement element)

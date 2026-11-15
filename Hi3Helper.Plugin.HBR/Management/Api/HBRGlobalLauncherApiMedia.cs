@@ -36,6 +36,9 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         set;
     }
 
+    private static TimeSpan _refreshTokenTime = TimeSpan.FromMinutes(30);
+    private DateTimeOffset _nextRefreshToken;
+
     protected override string ApiResponseBaseUrl { get; } = apiResponseBaseUrl;
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
@@ -108,6 +111,13 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
 
     protected override async Task<int> InitAsync(CancellationToken token)
     {
+        // If the next token is still in cache period, ignore.
+        if (_nextRefreshToken > DateTimeOffset.Now)
+            return 0;
+
+        // Advance the next refresh token.
+        _nextRefreshToken = DateTimeOffset.Now.Add(_refreshTokenTime);
+
         using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ApiResponseBaseUrl + "api/launcher/base/config", HttpCompletionOption.ResponseHeadersRead, token);
         message.EnsureSuccessStatusCode();
 
@@ -127,11 +137,17 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
 
     private async Task TryGetOverrideMediaAssets(CancellationToken token)
     {
-        const string ListUrl = "https://cdn.collapselauncher.com/cl-cdn/inhouse-plugin/heavenburnsred/remote-assets/background/override-background.json";
+        const string ListUrl = "remote-assets/background/override-background.json";
 
         try
         {
-            using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ListUrl, HttpCompletionOption.ResponseHeadersRead, token);
+            using HttpResponseMessage? message = await ApiResponseHttpClient.GetResponseFromUrlOrCdnAsync(ListUrl, token: token);
+            if (message == null)
+            {
+                SharedStatic.InstanceLogger.LogTrace("No CDNs are reachable :(");
+                return;
+            }
+
             if (!message.IsSuccessStatusCode)
             {
                 SharedStatic.InstanceLogger.LogTrace("Override background is not available on: {url} (HTTP Status: {statusInt}/{status})",
@@ -149,6 +165,30 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
             ApiOverrideEntriesResponse = await JsonSerializer.DeserializeAsync<List<HBRApiResponseMediaOverrideEntry>>(
              networkStream, HBRApiResponseContext.Default.ListHBRApiResponseMediaOverrideEntry, token);
 #endif
+
+            // Check for reachable CDNs for the background URL.
+            List<HBRApiResponseMediaOverrideEntry> availableEntries = [];
+            foreach (HBRApiResponseMediaOverrideEntry entry in ApiOverrideEntriesResponse ?? [])
+            {
+                string? entryUri = entry.BackgroundUrl;
+                if (string.IsNullOrEmpty(entryUri))
+                    continue;
+
+                using HttpResponseMessage? availableResponse =
+                    await ApiResponseHttpClient.GetResponseFromUrlOrCdnAsync(entryUri, token: token);
+                if (availableResponse == null)
+                    continue;
+
+                entry.BackgroundUrl = availableResponse.RequestMessage?.RequestUri?.ToString();
+                SharedStatic.InstanceLogger.LogTrace("Override Background is found at: {url}", entry.BackgroundUrl);
+                availableEntries.Add(entry);
+            }
+
+            ApiOverrideEntriesResponse = availableEntries;
+            if (ApiOverrideEntriesResponse.Count == 0)
+            {
+                SharedStatic.InstanceLogger.LogTrace("Override Background List is currently empty or has no reachable entries");
+            }
         }
         catch (Exception ex)
         {
