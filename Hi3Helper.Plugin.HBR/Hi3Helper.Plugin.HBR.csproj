@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
@@ -18,7 +18,7 @@
     <Company>Collapse Launcher Team</Company>
     <Authors>$(Company). neon-nyan, Cry0, bagusnl, shatyuka, gablm.</Authors>
     <Copyright>Copyright 2022-2025 $(Company)</Copyright>
-    <Version>0.8.4</Version>
+    <Version>0.8.5</Version>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <Configurations>Debug;Release;DebugNoReflection;ReleaseNoReflection</Configurations>
   </PropertyGroup>
@@ -28,8 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.0" />
+    <PackageReference Include="System.IO.Hashing" Version="11.0.0" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='DebugNoReflection'">
