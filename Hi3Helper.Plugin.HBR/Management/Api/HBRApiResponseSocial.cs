@@ -3,9 +3,9 @@
 #if !USELIGHTWEIGHTJSONPARSER
 using System.Text.Json.Serialization;
 #else
-using Hi3Helper.Plugin.Core.Utility.Json;
 using System.Linq;
 using System.Text.Json;
+using Hi3Helper.Plugin.Core.Utility.Json;
 #endif
 
 // ReSharper disable InconsistentNaming
@@ -30,8 +30,10 @@ public class HBRApiResponseSocial
             return null;
         }
 
-        List<HBRApiResponseSocialResponse> entries = [];
-        entries.AddRange(arrayElement.EnumerateArray().Select(HBRApiResponseSocialResponse.ParseFrom));
+        List<HBRApiResponseSocialResponse> entries =
+        [
+            .. arrayElement.EnumerateArray().Select(HBRApiResponseSocialResponse.ParseFrom)
+        ];
 
         return new HBRApiResponseSocial
         {

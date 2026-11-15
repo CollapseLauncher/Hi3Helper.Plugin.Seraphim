@@ -2,19 +2,18 @@
 using Hi3Helper.Plugin.Core.Management.Api;
 using Hi3Helper.Plugin.Core.Utility;
 using Hi3Helper.Plugin.HBR.Utility;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-
-#if !USELIGHTWEIGHTJSONPARSER
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
-#endif
 
 // ReSharper disable InconsistentNaming
 
@@ -41,36 +40,54 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
 
     private HBRApiResponse<HBRApiResponseMedia>? ApiResponse { get; set; }
 
+    private List<HBRApiResponseMediaOverrideEntry>? ApiOverrideEntriesResponse { get; set; }
+
     public override unsafe void GetBackgroundEntries(out nint handle, out int count, out bool isDisposable, out bool isAllocated)
     {
         using (ThisInstanceLock.EnterScope())
         {
-            PluginDisposableMemory<LauncherPathEntry> backgroundEntries = PluginDisposableMemory<LauncherPathEntry>.Alloc();
+            List<HBRApiResponseMediaOverrideEntry> validOverrideEntries = [];
+            if (ApiOverrideEntriesResponse != null)
+                validOverrideEntries.AddRange(ApiOverrideEntriesResponse.Where(x => x.ExpireDate != default && DateTimeOffset.Now < x.ExpireDate));
+
+            int entryCount = validOverrideEntries is { Count: > 0 } ? validOverrideEntries.Count : 0;
+            if (ApiResponse?.ResponseData != null)
+                entryCount++;
+
+            PluginDisposableMemory<LauncherPathEntry> backgroundEntries = entryCount > 0
+                ? PluginDisposableMemory<LauncherPathEntry>.Alloc(entryCount)
+                : PluginDisposableMemory<LauncherPathEntry>.Empty;
 
             try
             {
-                ref LauncherPathEntry entry = ref backgroundEntries[0];
+                if (entryCount == 0)
+                    return;
+
+                int offset = 0;
+                foreach (HBRApiResponseMediaOverrideEntry overrideEntry in validOverrideEntries)
+                {
+                    ref LauncherPathEntry overrideEntryRef = ref backgroundEntries[offset++];
+                    overrideEntryRef.Write(overrideEntry.BackgroundUrl, Span<byte>.Empty);
+                }
 
                 if (ApiResponse?.ResponseData == null)
                 {
-                    isDisposable = false;
-                    handle = nint.Zero;
-                    count = 0;
-                    isAllocated = false;
                     return;
                 }
+
+                ref LauncherPathEntry entry = ref backgroundEntries[offset];
 
                 byte[]? fileHashCrc = ApiResponse.ResponseData.BackgroundImageChecksum;
                 void* ptr = fileHashCrc == null ? null : (void*)Marshal.UnsafeAddrOfPinnedArrayElement(fileHashCrc, 0);
 
                 entry.Write(ApiResponse.ResponseData.BackgroundImageUrl, ptr == null ? Span<byte>.Empty : new Span<byte>(ptr, sizeof(ulong)));
-                isAllocated = true;
             }
             finally
             {
                 isDisposable = backgroundEntries.IsDisposable == 1;
-                handle = backgroundEntries.AsSafePointer();
-                count = backgroundEntries.Length;
+                isAllocated  = entryCount > 0;
+                handle       = entryCount > 0 ? backgroundEntries.AsSafePointer() : nint.Zero;
+                count        = entryCount;
             }
         }
     }
@@ -103,8 +120,40 @@ internal partial class HBRGlobalLauncherApiMedia(string apiResponseBaseUrl, stri
         ApiResponse = JsonSerializer.Deserialize<HBRApiResponse<HBRApiResponseMedia>>(jsonResponse, HBRApiResponseContext.Default.HBRApiResponseHBRApiResponseMedia);
 #endif
         ApiResponse!.EnsureSuccessCode();
+        await TryGetOverrideMediaAssets(token);
 
         return 0;
+    }
+
+    private async Task TryGetOverrideMediaAssets(CancellationToken token)
+    {
+        const string ListUrl = "https://cdn.collapselauncher.com/cl-cdn/inhouse-plugin/heavenburnsred/remote-assets/background/override-background.json";
+
+        try
+        {
+            using HttpResponseMessage message = await ApiResponseHttpClient.GetAsync(ListUrl, HttpCompletionOption.ResponseHeadersRead, token);
+            if (!message.IsSuccessStatusCode)
+            {
+                SharedStatic.InstanceLogger.LogTrace("Override background is not available on: {url} (HTTP Status: {statusInt}/{status})",
+                                                     ListUrl,
+                                                     (int)message.StatusCode,
+                                                     message.StatusCode);
+                return;
+            }
+
+            await using Stream networkStream = await message.Content.ReadAsStreamAsync(token);
+#if USELIGHTWEIGHTJSONPARSER
+            using JsonDocument document = await JsonDocument.ParseAsync(networkStream, default, token).ConfigureAwait(false);
+            ApiOverrideEntriesResponse = HBRApiResponseMediaOverrideEntry.ParseListFrom(document.RootElement);
+#else
+            ApiOverrideEntriesResponse = await JsonSerializer.DeserializeAsync<List<HBRApiResponseMediaOverrideEntry>>(
+             networkStream, HBRApiResponseContext.Default.ListHBRApiResponseMediaOverrideEntry, token);
+#endif
+        }
+        catch (Exception ex)
+        {
+            SharedStatic.InstanceLogger.LogError(ex, "An error occurred while trying to gather override background list.");
+        }
     }
 
     protected override async Task DownloadAssetAsyncInner(HttpClient? client, string fileUrl, Stream outputStream, PluginDisposableMemory<byte> fileChecksum, PluginFiles.FileReadProgressDelegate? downloadProgress, CancellationToken token)

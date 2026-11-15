@@ -2,13 +2,14 @@
 using System.Net.Http;
 
 #if !USELIGHTWEIGHTJSONPARSER
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 #else
-using Hi3Helper.Plugin.Core.Utility.Json;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Hi3Helper.Plugin.Core.Utility.Json;
 #endif
 
 // ReSharper disable InconsistentNaming
@@ -16,6 +17,7 @@ using System.Threading.Tasks;
 namespace Hi3Helper.Plugin.HBR.Management.Api;
 
 #if !USELIGHTWEIGHTJSONPARSER
+[JsonSerializable(typeof(HBRApiResponse<List<HBRApiResponseMediaOverrideEntry>>))]
 [JsonSerializable(typeof(HBRApiResponse<HBRApiResponseMedia>))]
 [JsonSerializable(typeof(HBRApiResponse<HBRApiResponseSocial>))]
 [JsonSerializable(typeof(HBRApiResponse<HBRApiResponseGameConfig>))]

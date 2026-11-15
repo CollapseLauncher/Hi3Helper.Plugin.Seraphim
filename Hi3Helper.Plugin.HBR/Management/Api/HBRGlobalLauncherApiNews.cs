@@ -1,8 +1,4 @@
-﻿using Hi3Helper.Plugin.Core;
-using Hi3Helper.Plugin.Core.Management.Api;
-using Hi3Helper.Plugin.HBR.Utility;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -10,6 +6,10 @@ using System.Net.Http;
 using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using System.Threading.Tasks;
+using Hi3Helper.Plugin.Core;
+using Hi3Helper.Plugin.Core.Management.Api;
+using Hi3Helper.Plugin.HBR.Utility;
+using Microsoft.Extensions.Logging;
 // ReSharper disable InconsistentNaming
 
 #if USELIGHTWEIGHTJSONPARSER

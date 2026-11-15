@@ -24,7 +24,7 @@ internal partial class HBRPluginSelfUpdate : PluginSelfUpdateBase
 
     internal HBRPluginSelfUpdate()
     {
-        PluginHttpClientBuilder builder = new PluginHttpClientBuilder();
+        PluginHttpClientBuilder builder = new();
         builder.AllowRedirections();
         builder.AllowUntrustedCert();
         builder.AllowCookies();

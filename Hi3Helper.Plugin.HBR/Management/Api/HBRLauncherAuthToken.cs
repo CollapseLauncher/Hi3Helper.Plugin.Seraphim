@@ -3,10 +3,10 @@
 #if !USELIGHTWEIGHTJSONPARSER
 using System.Text.Json.Serialization;
 #else
-using Hi3Helper.Plugin.Core.Utility.Json;
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using Hi3Helper.Plugin.Core.Utility.Json;
 #endif
 
 // ReSharper disable InconsistentNaming
