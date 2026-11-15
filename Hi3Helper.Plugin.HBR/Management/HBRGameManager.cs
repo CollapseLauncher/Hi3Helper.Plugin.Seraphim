@@ -83,17 +83,15 @@ internal partial class HBRGameManager : GameManagerBase
 
     public override void Dispose()
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         using (ThisInstanceLock.EnterScope())
         {
+            if (IsDisposed)
+                return;
+
             ApiDownloadHttpClient.Dispose();
             ApiDownloadHttpClient = null!;
 
-            ApiGameConfigResponse = null;
+            ApiGameConfigResponse      = null;
             ApiGameDownloadRefResponse = null;
             base.Dispose();
         }

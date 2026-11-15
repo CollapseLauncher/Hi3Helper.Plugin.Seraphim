@@ -138,13 +138,11 @@ internal partial class HBRGlobalLauncherApiNews(string apiResponseBaseUrl, strin
 
     public override void Dispose()
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         using (ThisInstanceLock.EnterScope())
         {
+            if (IsDisposed)
+                return;
+
             ApiDownloadHttpClient.Dispose();
             ApiDownloadHttpClient = null!;
 
