@@ -83,8 +83,8 @@ if /I exist "%projectPublishPath%" (
 )
 mkdir "%outputDirPath%"
 cd "%projectPath%"
-dotnet restore --runtime win-x64 ..\Hi3Helper.Plugin.HBR.sln || goto :Error
-dotnet clean --configuration %configuration% --runtime win-x64 ..\Hi3Helper.Plugin.HBR.sln || goto :Error
+dotnet restore --runtime win-x64 ..\Hi3Helper.Plugin.HBR.slnx || goto :Error
+dotnet clean --configuration %configuration% --runtime win-x64 ..\Hi3Helper.Plugin.HBR.slnx || goto :Error
 dotnet publish --configuration %configuration% --runtime win-x64 /p:PublishProfile=%publishProfile% -o "%outputDirPath%" || goto :Error
 
 :RemovePDBIfNotDebug

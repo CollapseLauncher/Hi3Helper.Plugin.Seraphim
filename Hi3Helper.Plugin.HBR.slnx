@@ -1,17 +1,23 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="DebugNoReflection" />
+    <BuildType Name="Release" />
+    <BuildType Name="ReleaseNoReflection" />
     <Platform Name="x64" />
   </Configurations>
+  <Project Path="../PluginPackerAndIndexer/Indexer.csproj">
+    <BuildType Solution="DebugNoReflection|*" Project="Debug" />
+    <BuildType Solution="ReleaseNoReflection|*" Project="Release" />
+    <Platform Project="x64" />
+  </Project>
   <Project Path="Hi3Helper.Plugin.Core/Hi3Helper.Plugin.Core.csproj">
-    <BuildType Solution="Debug|*" Project="DebugNoReflection" />
     <Platform Project="x64" />
   </Project>
   <Project Path="Hi3Helper.Plugin.Core/PluginTest/PluginTest.csproj">
-    <BuildType Solution="Debug|*" Project="DebugNoReflection" />
     <Platform Project="x64" />
   </Project>
   <Project Path="Hi3Helper.Plugin.HBR/Hi3Helper.Plugin.HBR.csproj">
-    <BuildType Solution="Debug|*" Project="DebugNoReflection" />
     <Platform Project="x64" />
   </Project>
 </Solution>
