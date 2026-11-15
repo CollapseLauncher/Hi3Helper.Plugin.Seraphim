@@ -78,7 +78,7 @@ public partial class HBRGlobalPresetConfig : PluginPresetConfigBase
     [field: AllowNull, MaybeNull]
     public override string ZoneHomePageUrl => field ??= "https://heavenburnsred.yo-star.com/";
 
-    public override GameReleaseChannel ReleaseChannel => GameReleaseChannel.ClosedBeta;
+    public override GameReleaseChannel ReleaseChannel => GameReleaseChannel.Public;
 
     [field: AllowNull, MaybeNull]
     public override string GameMainLanguage => field ??= "en";
