@@ -241,14 +241,14 @@ public partial class HBRGameInstaller
     }
 
     private static async ValueTask<bool> IsHashMatchedAsync(
-        FileStream fileStream,
-        GameInstallAsset asset,
-        Action<long> readStatusCallback,
+        FileStream        fileStream,
+        GameInstallAsset  asset,
+        Action<long>      readStatusCallback,
         CancellationToken token)
     {
-        Crc64Ecma crc64Ecma = new Crc64Ecma();
+        Crc64Ecma crc64Ecma  = new();
         const int bufferSize = 256 << 10;
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize); // 256 KB of buffer
+        byte[]    buffer     = ArrayPool<byte>.Shared.Rent(bufferSize); // 256 KB of buffer
 
         long totalRead = 0;
         try

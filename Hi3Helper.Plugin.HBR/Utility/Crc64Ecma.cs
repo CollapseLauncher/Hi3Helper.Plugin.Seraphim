@@ -2,12 +2,25 @@
 using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+// ReSharper disable IdentifierTypo
 // ReSharper disable UnusedMember.Global
 
 namespace Hi3Helper.Plugin.HBR.Utility;
 
 public sealed class Crc64Ecma() : NonCryptographicHashAlgorithm(8)
 {
+    private const ulong Polynomial = 0x42F0E1EBA9EA3693UL;
+
+    private const int PclmulCutoff = 64;
+
+    private static readonly Vector128<long> K512 = CreateFoldConstant(575, 511);
+    private static readonly Vector128<long> K384 = CreateFoldConstant(447, 383);
+    private static readonly Vector128<long> K256 = CreateFoldConstant(319, 255);
+    private static readonly Vector128<long> K128 = CreateFoldConstant(191, 127);
+
     private static ReadOnlySpan<ulong> Slicing8TableEcma =>
     [
         0x0000000000000000, 0xb32e4cbe03a75f6f, 0xf4843657a840a05b, 0x47aa7ae9abe7ff34, 0x7bd0c384ff8f5e33, 0xc8fe8f3afc28015c, 0x8f54f5d357cffe68, 0x3c7ab96d5468a107, 0xf7a18709ff1ebc66, 0x448fcbb7fcb9e309, 0x0325b15e575e1c3d, 0xb00bfde054f94352, 0x8c71448d0091e255, 0x3f5f08330336bd3a, 0x78f572daa8d1420e, 0xcbdb3e64ab761d61,
@@ -143,49 +156,153 @@ public sealed class Crc64Ecma() : NonCryptographicHashAlgorithm(8)
     private ulong _current;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong Update(ulong crc, ReadOnlySpan<byte> p)
+    private static ulong Reflect64(ulong value)
     {
-        crc = ~crc;
-        ReadOnlySpan<ulong> helperTable = Slicing8TableEcma;
+        value = ((value >> 1) & 0x5555555555555555UL) | ((value & 0x5555555555555555UL) << 1);
+        value = ((value >> 2) & 0x3333333333333333UL) | ((value & 0x3333333333333333UL) << 2);
+        value = ((value >> 4) & 0x0F0F0F0F0F0F0F0FUL) | ((value & 0x0F0F0F0F0F0F0F0FUL) << 4);
 
-        while (p.Length >= 64)
+        return BinaryPrimitives.ReverseEndianness(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong XPowerMod(int exponent)
+    {
+        ulong result = Polynomial;
+        for (int i = 64; i < exponent; i++)
         {
-            while (p.Length > 8)
-            {
-                crc ^= p[0] |
-                       (ulong)p[1] << 8 |
-                       (ulong)p[2] << 16 |
-                       (ulong)p[3] << 24 |
-                       (ulong)p[4] << 32 |
-                       (ulong)p[5] << 40 |
-                       (ulong)p[6] << 48 |
-                       (ulong)p[7] << 56;
+            result = (result << 1) ^ ((result & 0x8000000000000000UL) != 0 ? Polynomial : 0);
+        }
 
-                crc = helperTable[7 * 256 + (int)(crc & 0xff)] ^
-                      helperTable[6 * 256 + (int)((crc >> 8) & 0xff)] ^
-                      helperTable[5 * 256 + (int)((crc >> 16) & 0xff)] ^
-                      helperTable[4 * 256 + (int)((crc >> 24) & 0xff)] ^
-                      helperTable[3 * 256 + (int)((crc >> 32) & 0xff)] ^
-                      helperTable[2 * 256 + (int)((crc >> 40) & 0xff)] ^
-                      helperTable[1 * 256 + (int)((crc >> 48) & 0xff)] ^
-                      helperTable[0 * 256 + (int)(crc >> 56)];
+        return result;
+    }
 
-                p = p[8..];
-            }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<long> CreateFoldConstant(int lowExponent,
+                                                      int highExponent)
+    {
+        ulong low  = Reflect64(XPowerMod(lowExponent));
+        ulong high = Reflect64(XPowerMod(highExponent));
+
+        return Vector128.Create((long)low, (long)high);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<long> Fold128(Vector128<long> value,
+                                           Vector128<long> constant)
+    {
+        Vector128<long> low  = Pclmulqdq.CarrylessMultiply(value, constant, 0x00);
+        Vector128<long> high = Pclmulqdq.CarrylessMultiply(value, constant, 0x11);
+
+        return Sse2.Xor(low.AsByte(), high.AsByte()).AsInt64();
+    }
+
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe ulong UpdatePclmul(ulong crc,
+                                            ReadOnlySpan<byte> source)
+    {
+        if (!Pclmulqdq.IsSupported || source.Length < PclmulCutoff)
+        {
+            return ~UpdateScalar(~crc, source);
+        }
+
+        // Convert the external CRC to the internal state.
+        var      initial = Vector128.Create((long)~crc, 0L);
+        ref byte src     = ref MemoryMarshal.GetReference(source);
+
+        // Initialize four independent accumulators.
+        var x0 = Unsafe.ReadUnaligned<Vector128<long>>(ref src);
+        x0 = Sse2.Xor(x0.AsByte(), initial.AsByte()).AsInt64();
+
+        var x1 = Unsafe.ReadUnaligned<Vector128<long>>(ref Unsafe.Add(ref src, 16));
+        var x2 = Unsafe.ReadUnaligned<Vector128<long>>(ref Unsafe.Add(ref src, 32));
+        var x3 = Unsafe.ReadUnaligned<Vector128<long>>(ref Unsafe.Add(ref src, 48));
+
+        int offset = 64;
+        int remaining = source.Length - 64;
+
+        // Fold four independent 128-bit accumulators.
+        while (remaining >= 64)
+        {
+            x0 = Sse2.Xor(Fold128(x0, K512).AsByte(), Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref src, offset))).AsInt64();
+            x1 = Sse2.Xor(Fold128(x1, K512).AsByte(), Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref src, offset + 16))).AsInt64();
+            x2 = Sse2.Xor(Fold128(x2, K512).AsByte(), Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref src, offset + 32))).AsInt64();
+            x3 = Sse2.Xor(Fold128(x3, K512).AsByte(), Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref src, offset + 48))).AsInt64();
+
+            offset += 64;
+            remaining -= 64;
+        }
+
+        // Merge the four accumulators.
+        Vector128<long> acc = Sse2.Xor(Fold128(x0, K384).AsByte(), Fold128(x1, K256).AsByte()).AsInt64();
+
+        acc = Sse2.Xor(acc.AsByte(), Fold128(x2, K128).AsByte()).AsInt64();
+        acc = Sse2.Xor(acc.AsByte(), x3.AsByte()).AsInt64();
+
+        // Process remaining complete 16-byte blocks.
+        while (remaining >= 16)
+        {
+            var block = Unsafe.ReadUnaligned<Vector128<long>>(ref Unsafe.Add(ref src, offset));
+            acc = Sse2.Xor(Fold128(acc, K128).AsByte(), block.AsByte()).AsInt64();
+
+            offset    += 16;
+            remaining -= 16;
+        }
+
+        // Store the final 128-bit polynomial remainder.
+        Span<byte> remainder = stackalloc byte[16];
+        Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(remainder), acc);
+
+        // Reduce the final remainder using the existing CRC table.
+        ulong state = UpdateScalar(0, remainder);
+
+        // Process the remaining 0-15 bytes.
+        if (remaining > 0)
+        {
+            state = UpdateScalar(state, source.Slice(offset, remaining));
+        }
+
+        return ~state;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong UpdateScalar(ulong crc, ReadOnlySpan<byte> p)
+    {
+        while (p.Length > 8)
+        {
+            crc ^= p[0] |
+                   ((ulong)p[1] << 8) |
+                   ((ulong)p[2] << 16) |
+                   ((ulong)p[3] << 24) |
+                   ((ulong)p[4] << 32) |
+                   ((ulong)p[5] << 40) |
+                   ((ulong)p[6] << 48) |
+                   ((ulong)p[7] << 56);
+
+            crc = Slicing8TableEcma[7 * 256 + (int)(crc & 0xff)] ^
+                  Slicing8TableEcma[6 * 256 + (int)((crc >> 8) & 0xff)] ^
+                  Slicing8TableEcma[5 * 256 + (int)((crc >> 16) & 0xff)] ^
+                  Slicing8TableEcma[4 * 256 + (int)((crc >> 24) & 0xff)] ^
+                  Slicing8TableEcma[3 * 256 + (int)((crc >> 32) & 0xff)] ^
+                  Slicing8TableEcma[2 * 256 + (int)((crc >> 40) & 0xff)] ^
+                  Slicing8TableEcma[1 * 256 + (int)((crc >> 48) & 0xff)] ^
+                  Slicing8TableEcma[0 * 256 + (int)(crc >> 56)];
+
+            p = p[8..];
         }
 
         // ReSharper disable once ForCanBeConvertedToForeach
         for (int i = 0; i < p.Length; i++)
         {
-            int v = p[i];
-            crc = helperTable[(byte)crc ^ v] ^ (crc >> 8);
+            crc = Slicing8TableEcma[(byte)crc ^ p[i]] ^ (crc >> 8);
         }
 
-        return ~crc;
+        return crc;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void Append(ReadOnlySpan<byte> source) => _current = Update(_current, source);
+    public override void Append(ReadOnlySpan<byte> source) => _current = UpdatePclmul(_current, source);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Reset() => _current = 0;
