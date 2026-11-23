@@ -22,4 +22,7 @@ public partial class Seraphim : SharedStaticV1Ext<Seraphim> // 2025-08-18: We us
     [UnmanagedCallersOnly(EntryPoint = "TryGetApiExport", CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe int TryGetApiExport(char* exportName, void** delegateP) =>
         TryGetApiExportPointer(exportName, delegateP);
+
+    [UnmanagedCallersOnly(EntryPoint = "DllProcessAttach")]
+    private static void DllProcessAttach(nint hModule) { }
 }

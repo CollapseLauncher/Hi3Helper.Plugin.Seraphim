@@ -40,4 +40,9 @@
     <DefineConstants>$(DefineConstants);USELIGHTWEIGHTJSONPARSER</DefineConstants>
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NativeDllMain" Version="1.0.0" />
+  </ItemGroup>
+
 </Project>
