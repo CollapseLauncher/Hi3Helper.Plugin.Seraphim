@@ -232,7 +232,7 @@ public partial class Seraphim
         GameManagerExtension.PrintGameLog? printCallback = context.PrintGameLogCallback;
 
         await using FileStream fileStream = File.Open(gameLogPath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite);
-        using StreamReader reader = new StreamReader(fileStream);
+        using StreamReader reader = new(fileStream);
 
         fileStream.Position = 0;
         while (!token.IsCancellationRequested)
@@ -249,10 +249,13 @@ public partial class Seraphim
 
         static unsafe void PassStringLineToCallback(GameManagerExtension.PrintGameLog? invoke, string line)
         {
-            char* lineP   = line.GetPinnableStringPointer();
-            int   lineLen = line.Length;
+            if (invoke == null)
+                return;
 
-            invoke?.Invoke(lineP, lineLen, 0);
+            fixed (char* lineP = &line.GetPinnableStringReference())
+            {
+                invoke(lineP, line.Length, 0);
+            }
         }
     }
 }
